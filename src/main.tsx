@@ -1,0 +1,22 @@
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+import { ThemeProvider } from '@mui/material/styles';
+import CssBaseline from '@mui/material/CssBaseline';
+import { theme } from './theme'; // Ensure this points to your single theme file
+import '@fontsource/inter/400.css';
+import '@fontsource/inter/600.css';
+import '@fontsource/inter/700.css';
+import { BrowserRouter } from 'react-router-dom';
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <BrowserRouter>
+    <ThemeProvider theme={theme}>
+      {/* CssBaseline resets default browser styles to match MUI */}
+      <CssBaseline /> 
+      <App />
+    </ThemeProvider>
+  </BrowserRouter>
+  </React.StrictMode>,
+);
