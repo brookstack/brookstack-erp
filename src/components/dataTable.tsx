@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react'; // Added useMemo for performance
+import React, { useState, useMemo } from 'react'; 
 import {
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   IconButton, Box, Typography, Pagination, Paper,
@@ -37,12 +37,12 @@ export const DataTable: React.FC<DataTableProps> = ({
 }) => {
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [searchTerm, setSearchTerm] = useState(''); // New search state
+  const [searchTerm, setSearchTerm] = useState('');
   
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-  // 1. Filter the data based on search term
+  // Filter the data based on search term
   const filteredData = useMemo(() => {
     if (!searchTerm) return data;
     
@@ -53,12 +53,11 @@ export const DataTable: React.FC<DataTableProps> = ({
     );
   }, [data, searchTerm]);
 
-  // 2. Perform pagination on the FILTERED data
+  // Perform pagination on the FILTERED data
   const startIndex = (page - 1) * rowsPerPage;
   const paginatedData = filteredData.slice(startIndex, startIndex + rowsPerPage);
   const totalPages = Math.ceil(filteredData.length / rowsPerPage);
 
-  // Reset page to 1 when searching
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
     setPage(1);
@@ -73,17 +72,17 @@ export const DataTable: React.FC<DataTableProps> = ({
         spacing={2} 
         sx={{ mb: 3, px: 0.5 }}
       >
-        {title && <Typography variant="h5" sx={{ fontWeight: 700, color: '#232d42' }}>{title}</Typography>}
+        {title && <Typography variant="h5" sx={{ fontWeight: 800, color: '#232d42' }}>{title}</Typography>}
         
         <Stack direction="row" spacing={1} alignItems="center" sx={{ width: { xs: '100%', sm: 'auto' } }}>
           <TextField 
             size="small" 
             placeholder="Search..."
-            value={searchTerm} // Controlled input
-            onChange={handleSearchChange} // Trigger search
+            value={searchTerm}
+            onChange={handleSearchChange}
             InputProps={{ 
                 startAdornment: (<InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>),
-                sx: { borderRadius: 1, bgcolor: 'white' }
+                sx: { borderRadius: '8px', bgcolor: 'white', fontSize: '0.875rem' }
             }}
             sx={{ flexGrow: { xs: 1, sm: 0 }, width: { sm: 220 } }}
           />
@@ -93,9 +92,10 @@ export const DataTable: React.FC<DataTableProps> = ({
               startIcon={<AddIcon />} 
               onClick={primaryAction.onClick} 
               sx={{ 
-                borderRadius: 1, 
+                borderRadius: '8px', 
                 textTransform: 'none', 
                 boxShadow: 'none',
+                fontWeight: 600,
                 bgcolor: RUST_COLOR,
                 '&:hover': { bgcolor: RUST_HOVER }
               }}
@@ -123,12 +123,33 @@ export const DataTable: React.FC<DataTableProps> = ({
                   {columns.map((col) => (
                     <TableCell 
                       key={col.id} 
-                      sx={{ color: '#8a92a6', fontWeight: 700, fontSize: '0.75rem', borderBottom: '1px solid #f1f1f1', textTransform: 'uppercase', py: 2.5, px: 3, bgcolor: 'white', whiteSpace: 'nowrap' }}
+                      sx={{ 
+                        bgcolor: '#f8f9fa !important', // Grey background
+                        color: '#1a202c',              // Black title
+                        fontWeight: 800, 
+                        fontSize: '0.725rem', 
+                        borderBottom: '1px solid #edeff2', 
+                        textTransform: 'uppercase', 
+                        py: 2.2, 
+                        px: 3, 
+                        whiteSpace: 'nowrap',
+                        letterSpacing: '0.02em'
+                      }}
                     >
                       {col.label}
                     </TableCell>
                   ))}
-                  <TableCell align="right" sx={{ color: '#8a92a6', fontWeight: 700, fontSize: '0.75rem', borderBottom: '1px solid #f1f1f1', bgcolor: 'white', px: 3 }}>
+                  <TableCell 
+                    align="right" 
+                    sx={{ 
+                      bgcolor: '#f8f9fa !important', // Grey background
+                      color: '#1a202c',              // Black title
+                      fontWeight: 800, 
+                      fontSize: '0.725rem', 
+                      borderBottom: '1px solid #edeff2', 
+                      px: 3 
+                    }}
+                  >
                     ACTIONS
                   </TableCell>
                 </TableRow>
@@ -138,15 +159,15 @@ export const DataTable: React.FC<DataTableProps> = ({
                   paginatedData.map((row) => (
                     <TableRow key={row.id} hover sx={{ '&:hover': { bgcolor: alpha('#f3f4f6', 0.5) } }}>
                       {columns.map((col) => (
-                        <TableCell key={col.id} sx={{ color: '#232d42', fontSize: '0.875rem', py: 2, px: 3, borderBottom: '1px solid #f8f9fa', whiteSpace: 'nowrap' }}>
+                        <TableCell key={col.id} sx={{ color: '#232d42', fontSize: '0.85rem', py: 2, px: 3, borderBottom: '1px solid #f8f9fa', whiteSpace: 'nowrap' }}>
                           {col.render ? col.render(row) : row[col.id]}
                         </TableCell>
                       ))}
                       <TableCell align="right" sx={{ borderBottom: '1px solid #f8f9fa', px: 3 }}>
                         <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                          <IconButton size="small" onClick={() => onView?.(row.id)} sx={{ color: '#8a92a6' }}><ViewIcon sx={{ fontSize: '1.2rem' }} /></IconButton>
-                          <IconButton size="small" onClick={() => onEdit?.(row.id)} sx={{ color: '#8a92a6' }}><EditIcon sx={{ fontSize: '1.2rem' }} /></IconButton>
-                          <IconButton size="small" onClick={() => onDelete?.(row.id)} sx={{ color: '#8a92a6' }}><DeleteIcon sx={{ fontSize: '1.2rem' }} /></IconButton>
+                          <IconButton size="small" onClick={() => onView?.(row.id)} sx={{ color: '#8a92a6' }}><ViewIcon sx={{ fontSize: '1.1rem' }} /></IconButton>
+                          <IconButton size="small" onClick={() => onEdit?.(row.id)} sx={{ color: '#8a92a6' }}><EditIcon sx={{ fontSize: '1.1rem' }} /></IconButton>
+                          <IconButton size="small" onClick={() => onDelete?.(row.id)} sx={{ color: '#8a92a6' }}><DeleteIcon sx={{ fontSize: '1.1rem' }} /></IconButton>
                         </Stack>
                       </TableCell>
                     </TableRow>
@@ -154,7 +175,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                 ) : (
                   <TableRow>
                     <TableCell colSpan={columns.length + 1} align="center" sx={{ py: 10 }}>
-                      <Typography variant="body1" color="textSecondary">No results found for "{searchTerm}"</Typography>
+                      <Typography variant="body2" color="textSecondary">No results found for "{searchTerm}"</Typography>
                     </TableCell>
                   </TableRow>
                 )}
@@ -163,7 +184,6 @@ export const DataTable: React.FC<DataTableProps> = ({
           </TableContainer>
         </Paper>
       ) : (
-        /* Mobile View - logic update to use paginatedData */
         <Stack spacing={2}>
            {paginatedData.length > 0 ? (
              paginatedData.map((row) => (
@@ -171,24 +191,24 @@ export const DataTable: React.FC<DataTableProps> = ({
                  {columns.map((col) => (
                    <Box key={col.id} sx={{ mb: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                      <Typography variant="caption" sx={{ color: '#8a92a6', fontWeight: 700, textTransform: 'uppercase', mr: 2 }}>{col.label}</Typography>
-                     <Typography variant="body2" sx={{ color: '#232d42', fontWeight: 500, textAlign: 'right' }}>{col.render ? col.render(row) : row[col.id]}</Typography>
+                     <Typography variant="body2" sx={{ color: '#232d42', fontWeight: 600, textAlign: 'right' }}>{col.render ? col.render(row) : row[col.id]}</Typography>
                    </Box>
                  ))}
                  <Divider sx={{ my: 1.5, borderStyle: 'dashed' }} />
                  <Stack direction="row" justifyContent="flex-end" spacing={1}>
-                    <Button size="small" startIcon={<ViewIcon />} onClick={() => onView?.(row.id)} sx={{ color: '#8a92a6', textTransform: 'none' }}>View</Button>
-                    <Button size="small" startIcon={<EditIcon />} onClick={() => onEdit?.(row.id)} sx={{ color: '#232d42', textTransform: 'none' }}>Edit</Button>
-                    <Button size="small" startIcon={<DeleteIcon />} onClick={() => onDelete?.(row.id)} color="error" sx={{ textTransform: 'none' }}>Delete</Button>
+                    <Button size="small" startIcon={<ViewIcon />} onClick={() => onView?.(row.id)} sx={{ color: '#8a92a6', textTransform: 'none', fontSize: '0.75rem' }}>View</Button>
+                    <Button size="small" startIcon={<EditIcon />} onClick={() => onEdit?.(row.id)} sx={{ color: '#232d42', textTransform: 'none', fontSize: '0.75rem' }}>Edit</Button>
+                    <Button size="small" startIcon={<DeleteIcon />} onClick={() => onDelete?.(row.id)} color="error" sx={{ textTransform: 'none', fontSize: '0.75rem' }}>Delete</Button>
                  </Stack>
                </Paper>
              ))
            ) : (
-             <Typography align="center" sx={{ py: 4 }}>No results found.</Typography>
+             <Typography align="center" sx={{ py: 4, color: '#8a92a6' }}>No results found.</Typography>
            )}
         </Stack>
       )}
 
-      {/* Footer Section - showing counts for filteredData */}
+      {/* Footer Section */}
       <Stack 
         direction={{ xs: 'column', sm: 'row' }} 
         justifyContent="space-between" 
@@ -196,8 +216,8 @@ export const DataTable: React.FC<DataTableProps> = ({
         sx={{ py: 3, px: 1 }}
         spacing={2}
       >
-        <Typography variant="body2" sx={{ color: '#232d42', fontWeight: 500 }}>
-          Showing {filteredData.length > 0 ? startIndex + 1 : 0} to {Math.min(startIndex + rowsPerPage, filteredData.length)} of {filteredData.length}
+        <Typography variant="body2" sx={{ color: '#8a92a6', fontWeight: 500 }}>
+          Showing {filteredData.length > 0 ? startIndex + 1 : 0} to {Math.min(startIndex + rowsPerPage, filteredData.length)} of {filteredData.length} entries
         </Typography>
         
         <Stack direction="row" spacing={{ xs: 1, sm: 4 }} alignItems="center">
@@ -208,10 +228,11 @@ export const DataTable: React.FC<DataTableProps> = ({
                 size="small" 
                 value={rowsPerPage} 
                 onChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(1); }} 
-                sx={{ height: 36, borderRadius: 2, minWidth: 70 }}
+                sx={{ height: 32, borderRadius: '6px', minWidth: 70, fontSize: '0.85rem' }}
               >
                 <MenuItem value={10}>10</MenuItem>
                 <MenuItem value={25}>25</MenuItem>
+                <MenuItem value={50}>50</MenuItem>
               </Select>
             </Box>
           )}
@@ -223,7 +244,7 @@ export const DataTable: React.FC<DataTableProps> = ({
             shape="rounded" 
             size={isMobile ? "small" : "medium"}
             sx={{
-              '& .MuiPaginationItem-root': { borderRadius: '8px' },
+              '& .MuiPaginationItem-root': { borderRadius: '6px', border: '1px solid #f1f1f1' },
               '& .Mui-selected': { 
                 bgcolor: `${RUST_COLOR} !important`, 
                 color: 'white', 

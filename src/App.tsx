@@ -1,14 +1,16 @@
 import { Routes, Route } from 'react-router-dom';
 import { Typography } from '@mui/material';
-import { CustomersPage } from './pages/customers';
-import { DashboardLayout } from './layouts/dashboardLayouts';
+// import { CustomersPage } from './pages/customers';
+import { DashboardLayout } from './layouts/DashboardLayouts';
+import DashboardPage from './components/AdminDashboard/DashboardPage';
+import { CustomersPage } from './pages/Customers';
 
 function App() {
   return (
     <DashboardLayout>
       {/* This "Routes" component acts as a switcher based on the URL */}
       <Routes>
-        <Route path="/" element={<Typography variant="h4">Welcome to Brookstack</Typography>} />
+        <Route path="/" element={<DashboardPage/>} />
         
         {/* When the URL is /customers, it will now show your table */}
         <Route path="/customers" element={<CustomersPage />} />

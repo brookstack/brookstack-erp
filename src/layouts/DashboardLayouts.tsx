@@ -18,7 +18,7 @@ import {
     Divider,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
-import { navConfig } from './navConfig';
+import { navConfig } from './NavConfig';
 
 const drawerWidth = 260;
 

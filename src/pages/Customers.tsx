@@ -1,210 +1,53 @@
-import { Box, Chip, alpha } from '@mui/material';
-import { DataTable } from '../components/dataTable';
-
-const dummyCustomers = [
-  { 
-    id: 'CL-001', 
-    companyName: 'TechFlow Solutions', 
-    clientType: 'Corporate', 
-    serviceCategory: 'ERP Development', 
-    engagementType: 'Retainer',
-    accountManager: 'John Doe',
-    status: 'Active', 
-    created: 'Jan 02, 2026' 
-  },
-  { 
-    id: 'CL-002', 
-    companyName: 'Safari Ventures', 
-    clientType: 'SME', 
-    serviceCategory: 'Software Development', 
-    engagementType: 'One Off',
-    accountManager: 'Jane Smith',
-    status: 'Lead', 
-    created: 'Dec 28, 2025' 
-  },
-  { 
-    id: 'CL-003', 
-    companyName: 'Global Diaspora Bank', 
-    clientType: 'Government', 
-    serviceCategory: 'IT Consulting', 
-    engagementType: 'Support Contract',
-    accountManager: 'Robert Brown',
-    status: 'Inactive', 
-    created: 'Dec 15, 2025' 
-  },
-  { 
-    id: 'CL-004', 
-    companyName: 'Nexus FinTech', 
-    clientType: 'Corporate', 
-    serviceCategory: 'Systems Development', 
-    engagementType: 'Retainer',
-    accountManager: 'John Doe',
-    status: 'Active', 
-    created: 'Nov 12, 2025' 
-  },
-  { 
-    id: 'CL-001', 
-    companyName: 'TechFlow Solutions', 
-    clientType: 'Corporate', 
-    serviceCategory: 'ERP Development', 
-    engagementType: 'Retainer',
-    accountManager: 'John Doe',
-    status: 'Active', 
-    created: 'Jan 02, 2026' 
-  },
-  { 
-    id: 'CL-002', 
-    companyName: 'Safari Ventures', 
-    clientType: 'SME', 
-    serviceCategory: 'Software Development', 
-    engagementType: 'One Off',
-    accountManager: 'Jane Smith',
-    status: 'Lead', 
-    created: 'Dec 28, 2025' 
-  },
-  { 
-    id: 'CL-003', 
-    companyName: 'Global Diaspora Bank', 
-    clientType: 'Government', 
-    serviceCategory: 'IT Consulting', 
-    engagementType: 'Support Contract',
-    accountManager: 'Robert Brown',
-    status: 'Inactive', 
-    created: 'Dec 15, 2025' 
-  },
-  { 
-    id: 'CL-004', 
-    companyName: 'Nexus FinTech', 
-    clientType: 'Corporate', 
-    serviceCategory: 'Systems Development', 
-    engagementType: 'Retainer',
-    accountManager: 'John Doe',
-    status: 'Active', 
-    created: 'Nov 12, 2025' 
-  },
-  { 
-    id: 'CL-001', 
-    companyName: 'TechFlow Solutions', 
-    clientType: 'Corporate', 
-    serviceCategory: 'ERP Development', 
-    engagementType: 'Retainer',
-    accountManager: 'John Doe',
-    status: 'Active', 
-    created: 'Jan 02, 2026' 
-  },
-  { 
-    id: 'CL-002', 
-    companyName: 'Safari Ventures', 
-    clientType: 'SME', 
-    serviceCategory: 'Software Development', 
-    engagementType: 'One Off',
-    accountManager: 'Jane Smith',
-    status: 'Lead', 
-    created: 'Dec 28, 2025' 
-  },
-  { 
-    id: 'CL-003', 
-    companyName: 'Global Diaspora Bank', 
-    clientType: 'Government', 
-    serviceCategory: 'IT Consulting', 
-    engagementType: 'Support Contract',
-    accountManager: 'Robert Brown',
-    status: 'Inactive', 
-    created: 'Dec 15, 2025' 
-  },
-  { 
-    id: 'CL-004', 
-    companyName: 'Nexus FinTech', 
-    clientType: 'Corporate', 
-    serviceCategory: 'Systems Development', 
-    engagementType: 'Retainer',
-    accountManager: 'John Doe',
-    status: 'Active', 
-    created: 'Nov 12, 2025' 
-  },
-  { 
-    id: 'CL-001', 
-    companyName: 'TechFlow Solutions', 
-    clientType: 'Corporate', 
-    serviceCategory: 'ERP Development', 
-    engagementType: 'Retainer',
-    accountManager: 'John Doe',
-    status: 'Active', 
-    created: 'Jan 02, 2026' 
-  },
-  { 
-    id: 'CL-002', 
-    companyName: 'Safari Ventures', 
-    clientType: 'SME', 
-    serviceCategory: 'Software Development', 
-    engagementType: 'One Off',
-    accountManager: 'Jane Smith',
-    status: 'Lead', 
-    created: 'Dec 28, 2025' 
-  },
-  { 
-    id: 'CL-003', 
-    companyName: 'Global Diaspora Bank', 
-    clientType: 'Government', 
-    serviceCategory: 'IT Consulting', 
-    engagementType: 'Support Contract',
-    accountManager: 'Robert Brown',
-    status: 'Inactive', 
-    created: 'Dec 15, 2025' 
-  },
-  { 
-    id: 'CL-004', 
-    companyName: 'Nexus FinTech', 
-    clientType: 'Corporate', 
-    serviceCategory: 'Systems Development', 
-    engagementType: 'Retainer',
-    accountManager: 'John Doe',
-    status: 'Active', 
-    created: 'Nov 12, 2025' 
-  },
-  { 
-    id: 'CL-001', 
-    companyName: 'TechFlow Solutions', 
-    clientType: 'Corporate', 
-    serviceCategory: 'ERP Development', 
-    engagementType: 'Retainer',
-    accountManager: 'John Doe',
-    status: 'Active', 
-    created: 'Jan 02, 2026' 
-  },
-  { 
-    id: 'CL-002', 
-    companyName: 'Safari Ventures', 
-    clientType: 'SME', 
-    serviceCategory: 'Software Development', 
-    engagementType: 'One Off',
-    accountManager: 'Jane Smith',
-    status: 'Lead', 
-    created: 'Dec 28, 2025' 
-  },
-  { 
-    id: 'CL-003', 
-    companyName: 'Global Diaspora Bank', 
-    clientType: 'Government', 
-    serviceCategory: 'IT Consulting', 
-    engagementType: 'Support Contract',
-    accountManager: 'Robert Brown',
-    status: 'Inactive', 
-    created: 'Dec 15, 2025' 
-  },
-  { 
-    id: 'CL-004', 
-    companyName: 'Nexus FinTech', 
-    clientType: 'Corporate', 
-    serviceCategory: 'Systems Development', 
-    engagementType: 'Retainer',
-    accountManager: 'John Doe',
-    status: 'Active', 
-    created: 'Nov 12, 2025' 
-  },
-];
+import { useState, useEffect } from 'react'; // Added useEffect
+import { 
+  Box, 
+  Chip, 
+  alpha, 
+  Dialog, 
+  DialogContent, 
+  IconButton, 
+  Typography, 
+  Stack,
+  CircularProgress // For a better UX during loading
+} from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import { DataTable } from '../components/DataTable';
+import { AddCustomerForm } from '../components/Customers/MultiStepForm';
 
 export const CustomersPage = () => {
+  // --- New State ---
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+
+  // --- 1. Fetch Logic ---
+  const fetchCustomers = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch('http://localhost:5000/api/customers');
+      if (!response.ok) throw new Error('Network response was not ok');
+      const data = await response.json();
+      setCustomers(data);
+    } catch (error) {
+      console.error("Failed to load customers from Brookstack:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- 2. Run Fetch on Load ---
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
+
+  const handleOpen = () => setModalOpen(true);
+  
+  // Update handleClose to refresh data after a successful save
+  const handleSuccess = () => {
+    setModalOpen(false);
+    fetchCustomers(); // Refresh the table list immediately
+  };
+
   const columns = [
     { id: 'id', label: 'CLIENT ID' },
     { id: 'companyName', label: 'COMPANY NAME' },
@@ -212,54 +55,84 @@ export const CustomersPage = () => {
     { id: 'serviceCategory', label: 'SERVICE CATEGORY' },
     { id: 'engagementType', label: 'ENGAGEMENT' },
     { id: 'accountManager', label: 'ACC. MANAGER' },
-   { 
-  id: 'status', 
-  label: 'STATUS',
-  render: (row: any) => {
-    // Define the base colors for each status
-    const statusConfig: Record<string, { color: string, bg: string }> = {
-      Active: { color: '#2ecc71', bg: alpha('#2ecc71', 0.1) },   // Faded Green
-      Lead: { color: '#f1c40f', bg: alpha('#f1c40f', 0.1) },     // Faded Yellow
-      Inactive: { color: '#e74c3c', bg: alpha('#e74c3c', 0.1) }, // Faded Red
-    };
-
-    const config = statusConfig[row.status] || { color: '#8a92a6', bg: '#f1f1f1' };
-    
-    return (
-      <Chip 
-        label={row.status.toUpperCase()} 
-        size="small" 
-        sx={{ 
-          fontWeight: 800, 
-          fontSize: '0.65rem', 
-          borderRadius: '6px', // Matches the Merchant reference look
-          height: '24px',
-          backgroundColor: config.bg,
-          color: config.color,
-          border: `1px solid ${alpha(config.color, 0.2)}`, // Subtle border
-          '& .MuiChip-label': { px: 1.5 }
-        }} 
-      />
-    );
-  }
-},
-    { id: 'created', label: 'CREATED' },
+    { 
+      id: 'status', 
+      label: 'STATUS',
+      render: (row: any) => {
+        const statusConfig: Record<string, { color: string, bg: string }> = {
+          active: { color: '#2ecc71', bg: alpha('#2ecc71', 0.1) },
+          lead: { color: '#f1c40f', bg: alpha('#f1c40f', 0.1) },
+          inactive: { color: '#e74c3c', bg: alpha('#e74c3c', 0.1) },
+        };
+        // Normalize status to lowercase to match DB ENUM
+        const statusKey = row.status?.toLowerCase() || 'lead';
+        const config = statusConfig[statusKey] || { color: '#8a92a6', bg: '#f1f1f1' };
+        
+        return (
+          <Chip 
+            label={statusKey.toUpperCase()} 
+            size="small" 
+            sx={{ 
+              fontWeight: 800, 
+              fontSize: '0.65rem', 
+              borderRadius: '6px',
+              height: '24px',
+              backgroundColor: config.bg,
+              color: config.color,
+              border: `1px solid ${alpha(config.color, 0.2)}`,
+              '& .MuiChip-label': { px: 1.5 }
+            }} 
+          />
+        );
+      }
+    },
+    // Map created_at from MySQL instead of 'created'
+    { id: 'created_at', label: 'CREATED' }, 
   ];
 
   return (
     <Box sx={{ width: '100%' }}>
-      <DataTable 
-        title="Clients" 
-        columns={columns} 
-        data={dummyCustomers}
-        primaryAction={{
-          label: 'Add Client',
-          onClick: () => console.log('Add Client clicked'),
-        }}
-        onView={(id) => console.log('Viewing', id)}
-        onEdit={(id) => console.log('Editing', id)}
-        onDelete={(id) => console.log('Deleting', id)}
-      />
+      {loading ? (
+        <Stack alignItems="center" justifyContent="center" sx={{ py: 10 }}>
+          <CircularProgress sx={{ color: '#b7410e' }} />
+          <Typography sx={{ mt: 2, color: '#8a92a6' }}>Loading from Brookstack...</Typography>
+        </Stack>
+      ) : (
+        <DataTable 
+          title="Clients" 
+          columns={columns} 
+          data={customers} // Using the live state here
+          primaryAction={{
+            label: 'Add Client',
+            onClick: handleOpen,
+          }}
+          onView={(id) => console.log('Viewing', id)}
+          onEdit={(id) => console.log('Editing', id)}
+          onDelete={(id) => console.log('Deleting', id)}
+        />
+      )}
+
+      <Dialog 
+        open={modalOpen} 
+        onClose={() => setModalOpen(false)}
+        fullWidth
+        maxWidth="md"
+        PaperProps={{ sx: { borderRadius: 1, p: 1 } }}
+      >
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 2, py: 1 }}>
+          <Typography variant="h6" sx={{ fontWeight: 800, color: '#232d42', ml: 1 }}>
+            Add New Client
+          </Typography>
+          <IconButton onClick={() => setModalOpen(false)}>
+            <CloseIcon />
+          </IconButton>
+        </Stack>
+        
+        <DialogContent sx={{ pt: 0, pb: 4 }}>
+          {/* handleSuccess closes modal AND refreshes table */}
+          <AddCustomerForm onSuccess={handleSuccess} />
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };
