@@ -4,6 +4,7 @@ import { Typography } from '@mui/material';
 import { DashboardLayout } from './layouts/DashboardLayouts';
 import DashboardPage from './components/AdminDashboard/DashboardPage';
 import { CustomersPage } from './pages/Customers';
+import { BillingPage } from './pages/Billing';
 
 function App() {
   return (
@@ -16,7 +17,7 @@ function App() {
         <Route path="/customers" element={<CustomersPage />} />
         
         {/* Placeholders for other pages */}
-        <Route path="/billing" element={<Typography>Billing & Invoices Content</Typography>} />
+        <Route path="/billing" element={<BillingPage/>} />
         <Route path="/finance" element={<Typography>Finance Content</Typography>} />
         <Route path="/staff" element={<Typography>Staff Management Content</Typography>} />
       </Routes>

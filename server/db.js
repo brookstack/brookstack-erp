@@ -1,18 +1,23 @@
-import mysql from 'mysql2';
+import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
-// This loads the variables from your .env file
-dotenv.config();
+import path from 'path';
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASS,
-  database: process.env.DB_NAME,
+// Double-check env loading here as a safety measure
+dotenv.config({ path: '../.env' });
+
+const db = mysql.createPool({
+  host: process.env.DB_HOST || '127.0.0.1',
+  user: process.env.DB_USER || 'root',      // Ensure this isn't an empty string
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'brooksta_erp',
+  port: process.env.DB_PORT || 3307,
   waitForConnections: true,
-  connectionLimit: 10
+  connectionLimit: 10,
+  queueLimit: 0
 });
 
-export default pool.promise();
+export default db;
+
 
 // import mysql from 'mysql2';
 

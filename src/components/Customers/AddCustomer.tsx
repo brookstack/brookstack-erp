@@ -1,17 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box, TextField, Button, Stack, Stepper, Step, 
-  StepLabel, MenuItem, Grid, Alert, CircularProgress
+  StepLabel, MenuItem, Grid, Alert, CircularProgress, alpha,
+  Typography
 } from '@mui/material';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
 const RUST_COLOR = '#b7410e';
 const RUST_HOVER = '#a0360d';
+const SUCCESS_GREEN = '#198754';
 
 interface FormProps {
   onSuccess: () => void;
+  initialData?: any; // To populate form when editing
 }
 
-export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess }) => {
+export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess, initialData }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -23,23 +27,84 @@ export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess }) => {
     accountManager: '', status: 'lead', notes: ''
   });
 
+  // Effect to pre-fill data when initialData is provided (Edit Mode)
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        companyName: initialData.companyName || '',
+        clientType: initialData.clientType || '',
+        contactPerson: initialData.contactPerson || '',
+        mobile: initialData.mobile || '',
+        email: initialData.email || '',
+        location: initialData.location || 'Kenya',
+        city: initialData.city || '',
+        building: initialData.building || '',
+        serviceCategory: initialData.serviceCategory || '',
+        engagementType: initialData.engagementType || '',
+        description: initialData.description || '',
+        accountManager: initialData.accountManager || '',
+        status: initialData.status || 'lead',
+        notes: initialData.notes || ''
+      });
+    }
+  }, [initialData]);
+
   const steps = ['Client Details', 'Service Details', 'Client Status'];
+
+  const isValidEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const isStepValid = () => {
+    if (activeStep === 0) {
+      return (
+        formData.companyName.trim() !== '' &&
+        formData.clientType !== '' &&
+        formData.contactPerson.trim() !== '' &&
+        formData.mobile.trim() !== '' &&
+        isValidEmail(formData.email) &&
+        formData.location !== ''
+      );
+    }
+    if (activeStep === 1) {
+      return (
+        formData.serviceCategory !== '' &&
+        formData.engagementType !== '' &&
+        formData.description.trim() !== ''
+      );
+    }
+    if (activeStep === 2) {
+      return (
+        formData.accountManager !== '' &&
+        formData.status !== '' &&
+        formData.notes.trim() !== ''
+      );
+    }
+    return false;
+  };
 
   const handleSubmit = async () => {
     setLoading(true);
     setError(null);
+
+    // If initialData exists, use PUT for update, otherwise POST for create
+    const url = initialData 
+      ? `http://localhost:5000/api/customers/${initialData.id}` 
+      : 'http://localhost:5000/api/customers';
+    
+    const method = initialData ? 'PUT' : 'POST';
+
     try {
-      const response = await fetch('http://localhost:5000/api/customers', {
-        method: 'POST',
+      const response = await fetch(url, {
+        method: method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to save customer');
+        throw new Error(errorData.error || 'Failed to process customer data');
       }
-
       onSuccess(); 
     } catch (err: any) {
       setError(err.message);
@@ -50,10 +115,12 @@ export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess }) => {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (error) setError(null);
   };
 
   const fieldProps = {
     fullWidth: true,
+    required: true,
     size: 'small' as const,
     onChange: handleChange,
     slotProps: {
@@ -64,21 +131,37 @@ export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess }) => {
 
   return (
     <Box sx={{ width: '100%' }}>
-      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 2, fontSize: '0.85rem' }}>{error}</Alert>}
 
-      <Stepper 
-        activeStep={activeStep} 
-        alternativeLabel
-        sx={{ 
-          pt: 1, mb: 4,
-          '& .MuiStepLabel-label': { fontSize: '0.75rem', fontWeight: 600, mt: 1 },
-          '& .MuiStepIcon-root.Mui-active': { color: RUST_COLOR }, 
-          '& .MuiStepIcon-root.Mui-completed': { color: '#198754' } 
-        }}
-      >
-        {steps.map((label) => (
-          <Step key={label}><StepLabel>{label}</StepLabel></Step>
-        ))}
+      <Stepper activeStep={activeStep} alternativeLabel sx={{ pt: 1, mb: 4 }}>
+        {steps.map((label, index) => {
+          const completed = activeStep > index;
+          return (
+            <Step key={label} completed={completed}>
+              <StepLabel 
+                StepIconComponent={() => (
+                  completed ? (
+                    <CheckCircleIcon sx={{ color: SUCCESS_GREEN }} />
+                  ) : (
+                    <Box 
+                      sx={{ 
+                        width: 24, height: 24, borderRadius: '50%', 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        bgcolor: activeStep === index ? RUST_COLOR : '#ccc', color: '#fff', fontSize: '0.75rem', fontWeight: 700
+                      }}
+                    >
+                      {index + 1}
+                    </Box>
+                  )
+                )}
+              >
+                <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: activeStep === index ? RUST_COLOR : '#8a92a6' }}>
+                  {label}
+                </Typography>
+              </StepLabel>
+            </Step>
+          );
+        })}
       </Stepper>
 
       <Box sx={{ px: 1 }}>
@@ -94,7 +177,17 @@ export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess }) => {
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}><TextField {...fieldProps} name="contactPerson" label="Contact Person" value={formData.contactPerson} /></Grid>
             <Grid size={{ xs: 12, md: 6 }}><TextField {...fieldProps} name="mobile" label="Mobile Number" value={formData.mobile} /></Grid>
-            <Grid size={{ xs: 12, md: 6 }}><TextField {...fieldProps} name="email" label="Email Address" value={formData.email} /></Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField 
+                {...fieldProps} 
+                name="email" 
+                label="Email Address" 
+                type="email" 
+                value={formData.email} 
+                error={formData.email !== '' && !isValidEmail(formData.email)}
+                helperText={formData.email !== '' && !isValidEmail(formData.email) ? "Enter a valid email address" : ""}
+              />
+            </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField {...fieldProps} select name="location" label="Location" value={formData.location}>
                 <MenuItem value="Kenya" sx={{ fontSize: '0.85rem' }}>Kenya</MenuItem>
@@ -147,35 +240,29 @@ export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess }) => {
         )}
       </Box>
 
-      <Stack 
-        direction="row" 
-        justifyContent="space-between" 
-        alignItems="center"
-        sx={{ mt: 4, pt: 3, borderTop: '1px solid #f1f1f1' }}
-      >
+      <Stack direction="row" justifyContent="space-between" sx={{ mt: 4, pt: 3, borderTop: '1px solid #f1f1f1' }}>
         <Button 
           disabled={activeStep === 0 || loading} 
-          onClick={() => setActiveStep(prev => prev - 1)} 
-          sx={{ color: '#000', textTransform: 'none', fontWeight: 700, fontSize: '0.85rem' }}
+          onClick={() => setActiveStep(prev => prev - 1)}
+          sx={{ color: '#000', textTransform: 'none', fontWeight: 700 }}
         >
           Back
         </Button>
         
         <Button 
           variant="contained" 
-          disabled={loading}
+          disabled={loading || !isStepValid()} 
           onClick={activeStep === steps.length - 1 ? handleSubmit : () => setActiveStep(prev => prev + 1)}
           sx={{ 
-            bgcolor: RUST_COLOR, 
-            '&:hover': { bgcolor: RUST_HOVER }, 
-            borderRadius: '8px', px: 4, py: 1,
-            textTransform: 'none', boxShadow: 'none', fontSize: '0.85rem', fontWeight: 600
+            bgcolor: RUST_COLOR, '&:hover': { bgcolor: RUST_HOVER }, 
+            borderRadius: '8px', px: 4, textTransform: 'none', fontWeight: 700,
+            '&.Mui-disabled': { bgcolor: alpha(RUST_COLOR, 0.3), color: '#fff' }
           }}
         >
           {loading ? (
             <CircularProgress size={24} sx={{ color: '#fff' }} />
           ) : (
-            activeStep === steps.length - 1 ? 'Save Customer' : 'Continue'
+            activeStep === steps.length - 1 ? (initialData ? 'Update Client' : 'Save Customer') : 'Continue'
           )}
         </Button>
       </Stack>
