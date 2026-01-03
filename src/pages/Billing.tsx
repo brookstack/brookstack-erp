@@ -5,6 +5,7 @@ import {
   DialogTitle, DialogActions
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { DataTable } from '../components/DataTable';
 import { AddBillingForm } from '../components/Billing/AddBilling';
 import { ViewInvoice } from '../components/Billing/ViewBill';
@@ -25,7 +26,6 @@ export const BillingPage = () => {
     open: false, message: '', severity: 'success'
   });
 
-  // State for deletion modal
   const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; data: any | null }>({
     open: false, data: null
   });
@@ -63,7 +63,11 @@ export const BillingPage = () => {
       });
       
       if (response.ok) {
-        setSnackbar({ open: true, message: `Record ${deleteConfirm.data.doc_no} deleted`, severity: 'success' });
+        setSnackbar({ 
+            open: true, 
+            message: `Record ${deleteConfirm.data.doc_no} deleted successfully`, 
+            severity: 'success' 
+        });
         fetchBillingData();
       } else {
         const errorData = await response.json();
@@ -190,12 +194,16 @@ export const BillingPage = () => {
         />
       )}
 
-      {/* --- REVISED DELETE CONFIRMATION DIALOG --- */}
+      {/* --- DELETE CONFIRMATION DIALOG --- */}
       <Dialog 
         open={deleteConfirm.open} 
         onClose={() => setDeleteConfirm({ open: false, data: null })}
+        maxWidth="xs"
+        fullWidth
       >
-        <DialogTitle sx={{ fontWeight: 800, color: DARK_NAVY }}>Confirm Deletion</DialogTitle>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, color: '#d32f2f' }}>
+          <WarningAmberIcon color="error" /> Confirm Deletion
+        </DialogTitle>
         <DialogContent>
           <Typography>
             Are you sure you want to delete <strong>{deleteConfirm.data?.doc_no}</strong>? 
@@ -203,7 +211,7 @@ export const BillingPage = () => {
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDeleteConfirm({ open: false, data: null })} color="inherit">
+          <Button onClick={() => setDeleteConfirm({ open: false, data: null })} variant="outlined" sx={{ color: DARK_NAVY, borderColor: DARK_NAVY }}>
             Cancel
           </Button>
           <Button 
@@ -216,18 +224,26 @@ export const BillingPage = () => {
         </DialogActions>
       </Dialog>
 
+      {/* --- TOP-RIGHT SUCCESS/ERROR NOTIFICATION --- */}
       <Snackbar 
         open={snackbar.open} 
         autoHideDuration={4000} 
         onClose={() => setSnackbar({ ...snackbar, open: false })} 
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        sx={{ mt: 2 }} // Added small top margin for spacing
       >
-        <Alert severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
+        <Alert 
+            severity={snackbar.severity} 
+            variant="filled" 
+            sx={{ borderRadius: '8px', fontWeight: 600, width: '100%' }}
+        >
+            {snackbar.message}
+        </Alert>
       </Snackbar>
 
       <Dialog open={modalOpen} onClose={() => setModalOpen(false)} fullWidth maxWidth="md">
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid #eee' }}>
-          <Typography variant="h6" sx={{ fontWeight: 800 }}>
+          <Typography variant="h6" sx={{ fontWeight: 800, color: DARK_NAVY }}>
             {editData ? `Edit ${editData.doc_no}` : 'New Billing Document'}
           </Typography>
           <IconButton onClick={() => setModalOpen(false)}><CloseIcon /></IconButton>
@@ -238,7 +254,7 @@ export const BillingPage = () => {
             customers={customers} 
             onSuccess={() => { 
               setModalOpen(false); 
-              setSnackbar({ open: true, message: 'Success', severity: 'success' }); 
+              setSnackbar({ open: true, message: 'Billing generated successfully', severity: 'success' }); 
               fetchBillingData();
             }} 
             onError={(msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' })}

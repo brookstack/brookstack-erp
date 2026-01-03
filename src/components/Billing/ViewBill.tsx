@@ -166,13 +166,6 @@ export const ViewInvoice: React.FC<InvoiceProps> = ({ data, onBack }) => {
               <Typography sx={{ fontWeight: 700 }}>
                 {new Date(data.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
               </Typography>
-              <Box sx={{ mt: 1 }}>
-                 <Chip 
-                    label={data.status?.toUpperCase()} 
-                    size="small" 
-                    sx={{ fontWeight: 800, fontSize: '0.65rem', bgcolor: alpha(PRIMARY_RUST, 0.1), color: PRIMARY_RUST }} 
-                 />
-              </Box>
             </Stack>
           </Grid>
         </Grid>
@@ -183,7 +176,7 @@ export const ViewInvoice: React.FC<InvoiceProps> = ({ data, onBack }) => {
             <TableHead>
               <TableRow sx={{ bgcolor: DARK_NAVY }}>
                 <TableCell sx={{ fontWeight: 700, color: '#fff' }}>SERVICE DESCRIPTION</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, color: '#fff' }}>UNIT PRICE</TableCell>
+                <TableCell align="right" sx={{ fontWeight: 700, color: '#fff' }}>SERVICE FEE</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 700, color: '#fff' }}>VAT (16%)</TableCell>
                 <TableCell align="right" sx={{ fontWeight: 700, color: '#fff' }}>TOTAL ({data.currency})</TableCell>
               </TableRow>

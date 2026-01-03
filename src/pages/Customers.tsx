@@ -1,12 +1,17 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
     Box, Chip, alpha, Dialog, DialogContent, IconButton,
-    Typography, Stack, CircularProgress, Snackbar, Alert, Button
+    Typography, Stack, CircularProgress, Snackbar, Alert, Button,
+    DialogTitle, DialogActions
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { DataTable } from '../components/DataTable';
 import { AddCustomerForm } from '../components/Customers/AddCustomer';
 import { ViewCustomer } from '../components/Customers/ViewCustomer';
+
+const PRIMARY_RUST = '#b7410e';
+const DARK_NAVY = '#1a202c';
 
 export const CustomersPage = () => {
     const [customers, setCustomers] = useState<any[]>([]);
@@ -34,6 +39,7 @@ export const CustomersPage = () => {
             setCustomers(data);
         } catch (error) {
             console.error("Fetch error:", error);
+            setSnackbar({ open: true, message: 'Failed to fetch Brookstack clients', severity: 'error' });
         } finally {
             setLoading(false);
         }
@@ -41,22 +47,14 @@ export const CustomersPage = () => {
 
     useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 
-    // Handler for Viewing a Client
     const handleView = (id: any) => {
         const client = customers.find(c => c.id == id);
-        if (client) {
-            setSelectedCustomer(client);
-            setViewMode(true);
-        }
+        if (client) { setSelectedCustomer(client); setViewMode(true); }
     };
 
-    // Handler for Editing a Client
     const handleEdit = (id: any) => {
         const client = customers.find(c => c.id == id);
-        if (client) {
-            setEditData(client); // Set the specific record to be edited
-            setModalOpen(true);   // Open the same modal used for Add
-        }
+        if (client) { setEditData(client); setModalOpen(true); }
     };
 
     const triggerDelete = (id: any) => {
@@ -98,60 +96,77 @@ export const CustomersPage = () => {
                 return <Chip label={row.status?.toUpperCase()} size="small" sx={{ fontWeight: 800, fontSize: '0.65rem', backgroundColor: config.bg, color: config.color }} />;
             }
         },
-        { id: 'created_at', label: 'CREATED', render: (row: any) => new Date(row.created_at).toLocaleDateString() },
+        { id: 'created_at', label: 'CREATED', render: (row: any) => new Date(row.created_at).toLocaleDateString('en-GB') },
     ];
 
     return (
         <Box sx={{ width: '100%', p: viewMode ? 0 : 3 }}>
             {loading ? (
-                <Stack alignItems="center" py={10}><CircularProgress sx={{ color: '#b7410e' }} /></Stack>
+                <Stack alignItems="center" py={10}><CircularProgress sx={{ color: PRIMARY_RUST }} /></Stack>
             ) : viewMode && selectedCustomer ? (
                 <ViewCustomer
                     customer={selectedCustomer}
-                    onBack={() => {
-                        setViewMode(false);
-                        setSelectedCustomer(null);
-                    }}
+                    onBack={() => { setViewMode(false); setSelectedCustomer(null); }}
                 />
             ) : (
-                <>
-
-                    <DataTable
-                        title="Clients"
-                        columns={columns}
-                        data={customers}
-                        primaryAction={{
-                            label: 'Add Client',
-                            onClick: () => {
-                                setEditData(null); // Ensure no old data is present
-                                setModalOpen(true);
-                            }
-                        }}
-                        onView={handleView}
-                        onEdit={handleEdit}
-                        onDelete={triggerDelete}
-                    />
-                </>
+                <DataTable
+                    title="Clients"
+                    columns={columns}
+                    data={customers}
+                    primaryAction={{
+                        label: 'Add Client',
+                        onClick: () => { setEditData(null); setModalOpen(true); }
+                    }}
+                    onView={handleView}
+                    onEdit={handleEdit}
+                    onDelete={triggerDelete}
+                />
             )}
 
-            {/* --- SNACKBARS & ALERTS --- */}
-            <Snackbar
+            {/* --- REVISED DELETE CONFIRMATION DIALOG --- */}
+            <Dialog
                 open={deleteConfirm.open}
                 onClose={() => setDeleteConfirm({ open: false, data: null })}
-                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+                maxWidth="xs"
+                fullWidth
             >
-                <Alert severity="error" variant="filled" action={
-                    <Stack direction="row" spacing={1} sx={{ ml: 2 }}>
-                        <Button color="inherit" size="small" onClick={() => setDeleteConfirm({ open: false, data: null })}>CANCEL</Button>
-                        <Button variant="contained" size="small" onClick={handleActualDelete} sx={{ bgcolor: 'white', color: '#d32f2f' }}>CONFIRM</Button>
-                    </Stack>
-                }>
-                    Delete <strong>{deleteConfirm.data?.companyName}</strong>?
-                </Alert>
-            </Snackbar>
+                <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#d32f2f', fontWeight: 800 }}>
+                    <WarningAmberIcon color="error" /> Confirm Delete
+                </DialogTitle>
+                <DialogContent>
+                    <Typography>
+                        Are you sure you want to delete <strong>{deleteConfirm.data?.companyName}</strong>? 
+                        This will remove all associated contact information from the database.
+                    </Typography>
+                </DialogContent>
+                <DialogActions sx={{ p: 2, pt: 0 }}>
+                    <Button 
+                        onClick={() => setDeleteConfirm({ open: false, data: null })} 
+                        variant="outlined" 
+                        sx={{ color: DARK_NAVY, borderColor: DARK_NAVY }}
+                    >
+                        Keep Record
+                    </Button>
+                    <Button 
+                        onClick={handleActualDelete} 
+                        variant="contained" 
+                        sx={{ bgcolor: '#d32f2f', '&:hover': { bgcolor: '#b71c1c' } }}
+                    >
+                        Delete Permanently
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
-            <Snackbar open={snackbar.open} autoHideDuration={5000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
-                <Alert severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
+            {/* --- NOTIFICATION SNACKBAR --- */}
+            <Snackbar 
+                open={snackbar.open} 
+                autoHideDuration={5000} 
+                onClose={() => setSnackbar({ ...snackbar, open: false })} 
+                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+                <Alert severity={snackbar.severity} variant="filled" sx={{ width: '100%', fontWeight: 600 }}>
+                    {snackbar.message}
+                </Alert>
             </Snackbar>
 
             {/* --- Unified Add/Edit Modal --- */}
@@ -161,22 +176,22 @@ export const CustomersPage = () => {
                 fullWidth
                 maxWidth="md"
             >
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 800 }}>
-                        {editData ? `Edit: ${editData.companyName}` : 'Add New Client'}
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid #eee' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 800, color: DARK_NAVY }}>
+                        {editData ? `Edit Client: ${editData.companyName}` : 'Onboard New Client'}
                     </Typography>
                     <IconButton onClick={() => { setModalOpen(false); setEditData(null); }}><CloseIcon /></IconButton>
                 </Stack>
-                <DialogContent sx={{ pt: 0, pb: 4 }}>
+                <DialogContent sx={{ py: 4 }}>
                     <AddCustomerForm
-                        initialData={editData} // Pass the customer if editing, or null if adding
+                        initialData={editData}
                         onSuccess={() => {
                             setModalOpen(false);
                             setEditData(null);
                             fetchCustomers();
                             setSnackbar({
                                 open: true,
-                                message: editData ? 'Client updated successfully' : 'Client onboarded successfully',
+                                message: editData ? 'Client details updated' : 'New client successfully onboarded',
                                 severity: 'success'
                             });
                         }}

@@ -118,7 +118,8 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
               <Business sx={{ color: RUST }} />
               <Box>
                 <Typography variant="caption" sx={{ fontWeight: 700, color: RUST }}>CLIENT DETAILS</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedClient.companyName} — {selectedClient.contactPerson}</Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>{selectedClient.companyName} — {selectedClient.contactPerson} | {selectedClient.mobile} | {selectedClient.email}</Typography>
+                
               </Box>
             </Box></Grid>
           )}
