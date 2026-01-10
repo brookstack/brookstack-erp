@@ -22,7 +22,6 @@ interface Column {
     render?: (row: any) => React.ReactNode;
 }
 
-// Added a structured type for additional actions to handle dynamic labels/icons
 interface AdditionalAction {
     label: string;
     icon: React.ReactNode;
@@ -38,12 +37,13 @@ interface DataTableProps {
     onEdit?: (id: string) => void;
     onDelete?: (id: string) => void;
     primaryAction?: { label: string; onClick: () => void };
-    // Updated to return the action configuration
     additionalActions?: (row: any) => AdditionalAction | null;
+    /** Optional: specify which key to sort by. Defaults to 'id' */
+    sortBy?: string;
 }
 
 export const DataTable: React.FC<DataTableProps> = ({
-    title, columns, data, onView, onEdit, onDelete, primaryAction, additionalActions
+    title, columns, data, onView, onEdit, onDelete, primaryAction, additionalActions, sortBy = 'id'
 }) => {
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -52,26 +52,40 @@ export const DataTable: React.FC<DataTableProps> = ({
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-    const filteredData = useMemo(() => {
-        if (!searchTerm) return data;
-        return data.filter((row) =>
-            Object.values(row).some((value) =>
-                String(value).toLowerCase().includes(searchTerm.toLowerCase())
-            )
-        );
-    }, [data, searchTerm]);
+    // Updated useMemo to handle Search AND Descending Sort
+    const processedData = useMemo(() => {
+        // 1. Filter
+        let result = [...data];
+        if (searchTerm) {
+            result = result.filter((row) =>
+                Object.values(row).some((value) =>
+                    String(value).toLowerCase().includes(searchTerm.toLowerCase())
+                )
+            );
+        }
+
+        // 2. Sort Descending (Newest first)
+        return result.sort((a, b) => {
+            const valA = a[sortBy];
+            const valB = b[sortBy];
+
+            if (typeof valA === 'number' && typeof valB === 'number') {
+                return valB - valA;
+            }
+            // Fallback for strings/dates
+            return String(valB).localeCompare(String(valA), undefined, { numeric: true, sensitivity: 'base' });
+        });
+    }, [data, searchTerm, sortBy]);
 
     const startIndex = (page - 1) * rowsPerPage;
-    const paginatedData = filteredData.slice(startIndex, startIndex + rowsPerPage);
-    const totalPages = Math.ceil(filteredData.length / rowsPerPage);
+    const paginatedData = processedData.slice(startIndex, startIndex + rowsPerPage);
+    const totalPages = Math.ceil(processedData.length / rowsPerPage);
 
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
         setPage(1);
     };
 
-    // Helper component to render the dynamic button consistently
-    // Inside DataTable.tsx
     const RenderAdditionalAction = ({ row }: { row: any }) => {
         const action = additionalActions?.(row);
         if (!action) return null;
@@ -88,15 +102,8 @@ export const DataTable: React.FC<DataTableProps> = ({
                     fontWeight: 600,
                     minWidth: isMobile ? 'auto' : 0,
                     p: isMobile ? '4px 8px' : '6px',
-                    '& svg': {
-                        fontSize: '1.15rem !important' // Adjust this value (e.g., 1rem, 1.2rem) to your liking
-                    },
-
-                    // Removes the gap created by startIcon when text is hidden on desktop
-                    '& .MuiButton-startIcon': {
-                        margin: isMobile ? '0 8px 0 0' : 0
-                    },
-
+                    '& svg': { fontSize: '1.15rem !important' },
+                    '& .MuiButton-startIcon': { margin: isMobile ? '0 8px 0 0' : 0 },
                     '&:hover': { bgcolor: alpha(action.color || '#198754', 0.08) }
                 }}
             >
@@ -104,6 +111,7 @@ export const DataTable: React.FC<DataTableProps> = ({
             </Button>
         );
     };
+
     return (
         <Box sx={{ width: '100%', px: 0.5 }}>
             <Stack
@@ -142,7 +150,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                                 borderRadius: '8px',
                                 textTransform: 'none',
                                 boxShadow: 'none',
-                                fontWeight: { xs: 300, sm: 600 },
+                                fontWeight: 600,
                                 width: { xs: '100%', sm: 'auto' },
                                 bgcolor: RUST_COLOR,
                                 '&:hover': { bgcolor: RUST_HOVER },
@@ -182,9 +190,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                                             ))}
                                             <TableCell align="right" sx={{ borderBottom: '1px solid #f8f9fa', px: 3 }}>
                                                 <Stack direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center">
-                                                    {/* ✅ Dynamic Action Button */}
                                                     <RenderAdditionalAction row={row} />
-
                                                     <IconButton size="small" onClick={() => onView?.(row.id)} sx={{ color: '#8a92a6' }}><ViewIcon sx={{ fontSize: '1.1rem' }} /></IconButton>
                                                     <IconButton size="small" onClick={() => onEdit?.(row.id)} sx={{ color: '#8a92a6' }}><EditIcon sx={{ fontSize: '1.1rem' }} /></IconButton>
                                                     <IconButton size="small" onClick={() => onDelete?.(row.id)} sx={{ color: '#8a92a6' }}><DeleteIcon sx={{ fontSize: '1.1rem' }} /></IconButton>
@@ -195,7 +201,7 @@ export const DataTable: React.FC<DataTableProps> = ({
                                 ) : (
                                     <TableRow>
                                         <TableCell colSpan={columns.length + 1} align="center" sx={{ py: 10 }}>
-                                            <Typography variant="body2" color="textSecondary">No results found for "{searchTerm}"</Typography>
+                                            <Typography variant="body2" color="textSecondary">No results found.</Typography>
                                         </TableCell>
                                     </TableRow>
                                 )}
@@ -205,35 +211,29 @@ export const DataTable: React.FC<DataTableProps> = ({
                 </Paper>
             ) : (
                 <Stack spacing={2}>
-                    {paginatedData.length > 0 ? (
-                        paginatedData.map((row) => (
-                            <Paper key={row.id} elevation={0} sx={{ p: 2, border: '1px solid #f1f1f1', borderRadius: '12px' }}>
-                                {columns.map((col) => (
-                                    <Box key={col.id} sx={{ mb: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                                        <Typography variant="caption" sx={{ color: '#8a92a6', fontWeight: 700, textTransform: 'uppercase', mr: 2 }}>{col.label}</Typography>
-                                        <Typography variant="body2" sx={{ color: '#232d42', fontWeight: 600, textAlign: 'right' }}>{col.render ? col.render(row) : row[col.id]}</Typography>
-                                    </Box>
-                                ))}
-                                <Divider sx={{ my: 1.5, borderStyle: 'dashed' }} />
-                                <Stack direction="row" justifyContent="flex-end" spacing={1} alignItems="center">
-                                    {/* ✅ Dynamic Action Button for Mobile */}
-                                    <RenderAdditionalAction row={row} />
-
-                                    <Button size="small" startIcon={<ViewIcon />} onClick={() => onView?.(row.id)} sx={{ color: '#8a92a6', textTransform: 'none', fontSize: '0.75rem' }}>View</Button>
-                                    <Button size="small" startIcon={<EditIcon />} onClick={() => onEdit?.(row.id)} sx={{ color: '#232d42', textTransform: 'none', fontSize: '0.75rem' }}>Edit</Button>
-                                    <Button size="small" startIcon={<DeleteIcon />} onClick={() => onDelete?.(row.id)} color="error" sx={{ textTransform: 'none', fontSize: '0.75rem' }}>Delete</Button>
-                                </Stack>
-                            </Paper>
-                        ))
-                    ) : (
-                        <Typography align="center" sx={{ py: 4, color: '#8a92a6' }}>No results found.</Typography>
-                    )}
+                    {paginatedData.map((row) => (
+                        <Paper key={row.id} elevation={0} sx={{ p: 2, border: '1px solid #f1f1f1', borderRadius: '12px' }}>
+                            {columns.map((col) => (
+                                <Box key={col.id} sx={{ mb: 1.5, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <Typography variant="caption" sx={{ color: '#8a92a6', fontWeight: 700, textTransform: 'uppercase', mr: 2 }}>{col.label}</Typography>
+                                    <Typography variant="body2" sx={{ color: '#232d42', fontWeight: 600, textAlign: 'right' }}>{col.render ? col.render(row) : row[col.id]}</Typography>
+                                </Box>
+                            ))}
+                            <Divider sx={{ my: 1.5, borderStyle: 'dashed' }} />
+                            <Stack direction="row" justifyContent="flex-end" spacing={1} alignItems="center">
+                                <RenderAdditionalAction row={row} />
+                                <Button size="small" startIcon={<ViewIcon />} onClick={() => onView?.(row.id)} sx={{ color: '#8a92a6', textTransform: 'none', fontSize: '0.75rem' }}>View</Button>
+                                <Button size="small" startIcon={<EditIcon />} onClick={() => onEdit?.(row.id)} sx={{ color: '#232d42', textTransform: 'none', fontSize: '0.75rem' }}>Edit</Button>
+                                <Button size="small" startIcon={<DeleteIcon />} onClick={() => onDelete?.(row.id)} color="error" sx={{ textTransform: 'none', fontSize: '0.75rem' }}>Delete</Button>
+                            </Stack>
+                        </Paper>
+                    ))}
                 </Stack>
             )}
 
             <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems="center" sx={{ py: 3, px: 1 }} spacing={2}>
                 <Typography variant="body2" sx={{ color: '#8a92a6', fontWeight: 500 }}>
-                    Showing {filteredData.length > 0 ? startIndex + 1 : 0} to {Math.min(startIndex + rowsPerPage, filteredData.length)} of {filteredData.length} entries
+                    Showing {processedData.length > 0 ? startIndex + 1 : 0} to {Math.min(startIndex + rowsPerPage, processedData.length)} of {processedData.length} entries
                 </Typography>
                 <Stack direction="row" spacing={{ xs: 1, sm: 4 }} alignItems="center">
                     {!isMobile && (
@@ -246,7 +246,18 @@ export const DataTable: React.FC<DataTableProps> = ({
                             </Select>
                         </Box>
                     )}
-                    <Pagination count={totalPages} page={page} onChange={(_, val) => setPage(val)} variant="outlined" shape="rounded" size={isMobile ? "small" : "medium"} sx={{ '& .MuiPaginationItem-root': { borderRadius: '6px', border: '1px solid #f1f1f1' }, '& .Mui-selected': { bgcolor: `${RUST_COLOR} !important`, color: 'white', border: 'none', '&:hover': { bgcolor: `${RUST_HOVER} !important` } } }} />
+                    <Pagination 
+                        count={totalPages} 
+                        page={page} 
+                        onChange={(_, val) => setPage(val)} 
+                        variant="outlined" 
+                        shape="rounded" 
+                        size={isMobile ? "small" : "medium"} 
+                        sx={{ 
+                            '& .MuiPaginationItem-root': { borderRadius: '6px', border: '1px solid #f1f1f1' }, 
+                            '& .Mui-selected': { bgcolor: `${RUST_COLOR} !important`, color: 'white', border: 'none', '&:hover': { bgcolor: `${RUST_HOVER} !important` } } 
+                        }} 
+                    />
                 </Stack>
             </Stack>
         </Box>

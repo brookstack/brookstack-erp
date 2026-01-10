@@ -198,12 +198,12 @@ export const ViewPayment: React.FC<ReceiptProps> = ({ data, onBack }) => {
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                             <Typography sx={{ fontSize: '0.75rem', color: PRIMARY_RUST }}>AMOUNT PAID NOW</Typography>
                             <Typography sx={{ fontSize: '0.75rem', color: PRIMARY_RUST }}>
-                                (-) {data.currency} {financialMetrics.currentPaid.toLocaleString()}
+                                {data.currency} {financialMetrics.currentPaid.toLocaleString()}
                             </Typography>
                         </Box>
                         <Divider />
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography sx={{ fontSize: '0.75rem', color: DARK_NAVY }}>OUTSTANDING BALANCE</Typography>
+                            <Typography sx={{ fontSize: '0.75rem', color: DARK_NAVY }}><b>OUTSTANDING BALANCE</b></Typography>
                             <Typography sx={{ fontSize: '1.1rem', color: DARK_NAVY }}>
                                 {data.currency} {financialMetrics.balance.toLocaleString()}
                             </Typography>

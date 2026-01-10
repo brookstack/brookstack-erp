@@ -139,14 +139,14 @@ export const AddPaymentForm: React.FC<AddPaymentFormProps> = ({
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
               <MetaItem 
-                label="New Total Paid" 
+                label="Total Paid" 
                 value={`${selectedInvoice.currency} ${projectedTotalPaid.toLocaleString()}`} 
                 highlight={SUCCESS} 
               />
             </Grid>
             <Grid size={{ xs: 6, sm: 3 }}>
               <MetaItem 
-                label="New Balance" 
+                label="Balance" 
                 value={`${selectedInvoice.currency} ${projectedBalance.toLocaleString()}`} 
                 highlight={projectedBalance > 0 ? RUST : SUCCESS} 
               />
