@@ -4,7 +4,7 @@ import {
   Grid, Typography, Divider, alpha, Paper, IconButton, CircularProgress, Alert, useTheme, useMediaQuery,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 } from '@mui/material';
-import { CheckCircle, AddCircle, Delete, Business } from '@mui/icons-material';
+import { CheckCircle, AddCircle, Delete, Business, Lock } from '@mui/icons-material';
 import axios from 'axios';
 
 const RUST = '#b52841';
@@ -27,6 +27,9 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
+  // Logic to determine if we are editing an existing record
+  const isEditMode = !!initialData;
 
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -44,7 +47,7 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
     if (initialData) {
       setForm({
         ...initialData,
-        clientId: initialData.client_id,
+        clientId: initialData.client_id || initialData.clientId,
         services: typeof initialData.services === 'string' ? JSON.parse(initialData.services) : initialData.services
       });
     }
@@ -70,8 +73,8 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
     setLoading(true);
     setInternalError(null);
     try {
-      const endpoint = initialData ? `${API_BASE_URL}/billing/${initialData.id}` : `${API_BASE_URL}/billing`;
-      const method = initialData ? 'put' : 'post';
+      const endpoint = isEditMode ? `${API_BASE_URL}/billing/${initialData.id}` : `${API_BASE_URL}/billing`;
+      const method = isEditMode ? 'put' : 'post';
       await axios[method](endpoint, { ...form, sub: totals.sub, vat: totals.vat, grand: totals.grand });
       onSuccess();
     } catch (err: any) {
@@ -81,7 +84,23 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
     } finally { setLoading(false); }
   };
 
-  const fProps = { fullWidth: true, size: 'small' as const, slotProps: { input: { sx: { borderRadius: '8px', fontSize: '0.85rem', fontFamily: "'Inter', sans-serif" } } } };
+  // Helper for Input styling and read-only state
+  const getFProps = (readOnly: boolean) => ({
+    fullWidth: true,
+    size: 'small' as const,
+    disabled: readOnly,
+    slotProps: { 
+      input: { 
+        readOnly: readOnly,
+        sx: { 
+          borderRadius: '8px', 
+          fontSize: '0.85rem', 
+          fontFamily: "'Inter', sans-serif",
+          bgcolor: readOnly ? alpha(DARK_NAVY, 0.04) : 'transparent'
+        } 
+      } 
+    }
+  });
 
   return (
     <Box sx={{ width: '100%', fontFamily: "'Inter', sans-serif" }}>
@@ -103,18 +122,35 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
 
       {activeStep === 0 && (
         <Grid container spacing={2}>
-          <Grid size={{ xs: 6 }}><TextField {...fProps} select label="Document Type" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}><MenuItem value="invoice">Invoice</MenuItem><MenuItem value="quotation">Quotation</MenuItem></TextField></Grid>
-          <Grid size={{ xs: 6 }}><TextField {...fProps} select label="Currency" value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })}>{['KES', 'USD', 'EUR'].map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}</TextField></Grid>
-          <Grid size={{ xs: 12 }}><TextField {...fProps} select label="Select Client" value={form.clientId} onChange={e => setForm({ ...form, clientId: e.target.value })}>{customers.map(c => <MenuItem key={c.id} value={c.id}>{c.companyName}</MenuItem>)}</TextField></Grid>
+          <Grid size={{ xs: 6 }}>
+            <TextField {...getFProps(isEditMode)} select label="Document Type" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
+                <MenuItem value="invoice">Invoice</MenuItem>
+                <MenuItem value="quotation">Quotation</MenuItem>
+            </TextField>
+          </Grid>
+          <Grid size={{ xs: 6 }}>
+            <TextField {...getFProps(isEditMode)} select label="Currency" value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })}>
+                {['KES', 'USD', 'EUR'].map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+            </TextField>
+          </Grid>
+          <Grid size={{ xs: 12 }}>
+            <TextField {...getFProps(isEditMode)} select label="Select Client" value={form.clientId} onChange={e => setForm({ ...form, clientId: e.target.value })}>
+                {customers.map(c => <MenuItem key={c.id} value={c.id}>{c.companyName}</MenuItem>)}
+            </TextField>
+          </Grid>
           {selectedClient && (
-            <Grid size={{ xs: 12 }}><Box sx={{ p: 2, bgcolor: alpha(RUST, 0.05), borderRadius: '8px', border: `1px dashed ${RUST}`, display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Business sx={{ color: RUST }} />
-              <Box>
-                <Typography variant="caption" sx={{ fontWeight: 800, color: RUST, letterSpacing: 1 }}>CLIENT DETAILS</Typography>
-                <Typography variant="body2" sx={{ fontWeight: 700 }}>{selectedClient.companyName}</Typography>
-                <Typography variant="caption" sx={{ display: 'block', color: 'textSecondary' }}>{selectedClient.contactPerson} | {selectedClient.email}</Typography>
+            <Grid size={{ xs: 12 }}>
+              <Box sx={{ p: 2, bgcolor: isEditMode ? alpha(DARK_NAVY, 0.02) : alpha(RUST, 0.05), borderRadius: '8px', border: `1px dashed ${isEditMode ? alpha(DARK_NAVY, 0.2) : RUST}`, display: 'flex', alignItems: 'center', gap: 2 }}>
+                {isEditMode ? <Lock sx={{ color: alpha(DARK_NAVY, 0.4) }} /> : <Business sx={{ color: RUST }} />}
+                <Box>
+                  <Typography variant="caption" sx={{ fontWeight: 800, color: isEditMode ? alpha(DARK_NAVY, 0.5) : RUST, letterSpacing: 1 }}>
+                    {isEditMode ? 'CLIENT INFORMATION' : 'CLIENT DETAILS'}
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>{selectedClient.companyName}</Typography>
+                  <Typography variant="caption" sx={{ display: 'block', color: 'textSecondary' }}>{selectedClient.contactPerson} | {selectedClient.email}</Typography>
+                </Box>
               </Box>
-            </Box></Grid>
+            </Grid>
           )}
         </Grid>
       )}
@@ -125,19 +161,19 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
             <Paper key={i} variant="outlined" sx={{ p: 2, borderRadius: '8px', position: 'relative', bgcolor: '#fcfcfc' }}>
               <Grid container spacing={2} alignItems="center">
                 <Grid size={{ xs: 12, sm: 4 }}>
-                  <TextField {...fProps} label="Service Description" value={item.description} onChange={e => { const s = [...form.services]; s[i].description = e.target.value; setForm({ ...form, services: s }); }} />
+                  <TextField {...getFProps(false)} label="Service Description" value={item.description} onChange={e => { const s = [...form.services]; s[i].description = e.target.value; setForm({ ...form, services: s }); }} />
                 </Grid>
                 <Grid size={{ xs: 6, sm: 2 }}>
-                  <TextField {...fProps} label="Unit Cost" type="number" value={item.price} onChange={e => { const s = [...form.services]; s[i].price = Number(e.target.value); setForm({ ...form, services: s }); }} />
+                  <TextField {...getFProps(false)} label="Unit Cost" type="number" value={item.price} onChange={e => { const s = [...form.services]; s[i].price = Number(e.target.value); setForm({ ...form, services: s }); }} />
                 </Grid>
                 <Grid size={{ xs: 6, sm: 3 }}>
-                  <TextField {...fProps} select label="Tax Type" value={item.vat} onChange={e => { const s = [...form.services]; s[i].vat = e.target.value as any; setForm({ ...form, services: s }); }}>
+                  <TextField {...getFProps(false)} select label="Tax Type" value={item.vat} onChange={e => { const s = [...form.services]; s[i].vat = e.target.value as any; setForm({ ...form, services: s }); }}>
                     <MenuItem value={false as any}>No VAT</MenuItem>
                     <MenuItem value={true as any}>VAT (16%)</MenuItem>
                   </TextField>
                 </Grid>
                 <Grid size={{ xs: 10, sm: 2 }}>
-                  <TextField {...fProps} select label="Frequency" value={item.frequency} onChange={e => { const s = [...form.services]; s[i].frequency = e.target.value; setForm({ ...form, services: s }); }}>
+                  <TextField {...getFProps(false)} select label="Frequency" value={item.frequency} onChange={e => { const s = [...form.services]; s[i].frequency = e.target.value; setForm({ ...form, services: s }); }}>
                     <MenuItem value="One-off">One-off</MenuItem>
                     <MenuItem value="Monthly">Monthly</MenuItem>
                     <MenuItem value="Annually">Annually</MenuItem>
@@ -157,7 +193,7 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
               <Typography variant="caption" sx={{ fontWeight: 600 }}>VAT (16%): {form.currency} {totals.vat.toLocaleString()}</Typography>
               <Typography variant="h6" sx={{ fontWeight: 900, color: RUST }}>Total: {form.currency} {totals.grand.toLocaleString()}</Typography>
             </Stack>
-            <TextField {...fProps} multiline rows={2} label="Internal Notes / Terms & Conditions" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
+            <TextField {...getFProps(false)} multiline rows={2} label="Internal Notes / Terms & Conditions" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} />
           </Box>
         </Stack>
       )}
@@ -168,7 +204,9 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
             <Box component="img" src="/logo.png" alt="Brookstack" sx={{ width: 240, height: 'auto' }} />
             <Box textAlign="right">
               <Typography variant="h5" sx={{ fontWeight: 900, color: alpha(DARK_NAVY, 0.1), mb: 0.5 }}>{form.type.toUpperCase()}</Typography>
-              <Typography variant="caption" sx={{ fontWeight: 800, color: DARK_NAVY }}>DRAFT DOCUMENT</Typography>
+              <Typography variant="caption" sx={{ fontWeight: 800, color: DARK_NAVY }}>
+                {isEditMode ? 'EDITED DOCUMENT' : 'DRAFT DOCUMENT'}
+              </Typography>
             </Box>
           </Stack>
 
@@ -184,11 +222,10 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
             </Grid>
           </Grid>
 
-          {/* Detailed Financial Table */}
           <TableContainer sx={{ mb: 4, borderRadius: '4px', border: `1px solid ${alpha(DARK_NAVY, 0.05)}` }}>
             <Table size="small">
               <TableHead>
-                <TableRow sx={{ bgcolor: DARK_NAVY }}>
+                <TableRow sx={{ bgcolor: RUST }}>
                   <TableCell sx={{ color: '#fff', fontWeight: 700, fontSize: '0.7rem' }}>SERVICE DESCRIPTION</TableCell>
                   <TableCell align="right" sx={{ color: '#fff', fontWeight: 700, fontSize: '0.7rem' }}>UNIT COST</TableCell>
                   <TableCell align="right" sx={{ color: '#fff', fontWeight: 700, fontSize: '0.7rem' }}>VAT (16%)</TableCell>
@@ -240,7 +277,7 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
           onClick={activeStep === 2 ? handleSubmit : () => setActiveStep(p => p + 1)}
           sx={{ bgcolor: RUST, '&:hover': { bgcolor: alpha(RUST, 0.9) }, borderRadius: '8px', px: { xs: 2, sm: 4 }, fontWeight: 800, textTransform: 'none' }}
         >
-          {loading ? <CircularProgress size={24} color="inherit" /> : activeStep === 2 ? `Confirm & Save` : 'Continue to Preview'}
+          {loading ? <CircularProgress size={24} color="inherit" /> : activeStep === 2 ? (isEditMode ? 'Update Record' : 'Confirm & Save') : 'Continue to Preview'}
         </Button>
       </Stack>
     </Box>
