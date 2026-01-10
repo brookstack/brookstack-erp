@@ -11,8 +11,6 @@ import {
   Print as PrintIcon
 } from '@mui/icons-material';
 import { useReactToPrint } from 'react-to-print';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 const PRIMARY_RUST = '#b52841'; 
 const DARK_NAVY = '#1a202c';
@@ -33,51 +31,11 @@ export const ViewInvoice: React.FC<InvoiceProps> = ({ data, onBack }) => {
     return typeof data.services === 'string' ? JSON.parse(data.services) : data.services;
   }, [data.services]);
 
-  const handlePrint = useReactToPrint({
+  // This method generates a Vector PDF (Pure Text) via the Browser Print Engine
+  const handleDownloadPDF = useReactToPrint({
     contentRef: invoiceRef,
     documentTitle: `${data.doc_no}_${data.clientName}`,
   });
-
-  const handleDownloadPDF = async () => {
-    const element = invoiceRef.current;
-    if (!element) return;
-
-    const originalWidth = element.style.width;
-    const originalMinHeight = element.style.minHeight;
-
-    element.style.width = '950px';
-    element.style.minHeight = '1123px'; 
-
-    try {
-      const canvas = await html2canvas(element, { 
-          scale: 2, 
-          useCORS: true,
-          allowTaint: true,
-          backgroundColor: "#ffffff",
-          windowWidth: 1200,
-          logging: false
-      });
-
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'mm',
-        format: 'a4'
-      });
-
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-
-      // We fit the canvas to the exact A4 dimensions
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-      pdf.save(`${data.doc_no}.pdf`);
-    } catch (err) {
-      console.error("PDF Generation failed", err);
-    } finally {
-      element.style.width = originalWidth;
-      element.style.minHeight = originalMinHeight;
-    }
-  };
 
   return (
     <Box sx={{ p: { xs: 1, sm: 2, md: 3 }, maxWidth: '950px', margin: 'auto' }}>
@@ -96,13 +54,13 @@ export const ViewInvoice: React.FC<InvoiceProps> = ({ data, onBack }) => {
         </Button>
         <Stack direction="row" spacing={1}>
           {!isMobile && (
-            <IconButton onClick={() => handlePrint()} sx={{ color: DARK_NAVY }}>
+            <IconButton onClick={() => handleDownloadPDF()} sx={{ color: DARK_NAVY }}>
               <PrintIcon />
             </IconButton>
           )}
           <Button 
             variant="contained" 
-            onClick={handleDownloadPDF}
+            onClick={() => handleDownloadPDF()}
             startIcon={<DownloadIcon />} 
             sx={{ 
                 bgcolor: PRIMARY_RUST, 
@@ -113,7 +71,7 @@ export const ViewInvoice: React.FC<InvoiceProps> = ({ data, onBack }) => {
                 px: { xs: 2, sm: 3 }
             }}
           >
-            {isMobile ? 'PDF' : 'Export PDF'}
+            {isMobile ? 'PDF' : 'Export Vector PDF'}
           </Button>
         </Stack>
       </Stack>
@@ -123,19 +81,26 @@ export const ViewInvoice: React.FC<InvoiceProps> = ({ data, onBack }) => {
         elevation={isMobile ? 0 : 2} 
         sx={{ 
           p: { xs: 2, sm: 4, md: 6 }, 
-          pb: '100px', // Create space for the absolute footer
+          pb: '100px', 
           borderRadius: '0px',
-          minHeight: '1123px', 
+          minHeight: '1123px', // Standard A4 Aspect Ratio
           position: 'relative',
           bgcolor: 'white',
           display: 'flex',
           flexDirection: 'column', 
           overflow: 'hidden',
           border: isMobile ? `1px solid ${alpha(DARK_NAVY, 0.1)}` : 'none',
-          '@media print': { margin: 0, boxShadow: 'none', border: 'none' }
+          // Critical for text sharpness
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale',
+          '@media print': { 
+            margin: 0, 
+            boxShadow: 'none', 
+            border: 'none',
+            p: '15mm', // Professional print margins
+          }
         }}
       >
-        {/* Main Content Area */}
         <Box sx={{ flexGrow: 1 }}>
             {/* Header */}
             <Grid container spacing={3} alignItems="center">
@@ -234,7 +199,7 @@ export const ViewInvoice: React.FC<InvoiceProps> = ({ data, onBack }) => {
             </Grid>
         </Box>
 
-        {/* BOTTOM FIXED FOOTER - The Gap Fix */}
+        {/* BOTTOM FIXED FOOTER */}
         <Box sx={{ 
             position: 'absolute', 
             bottom: 0, 
@@ -260,7 +225,6 @@ export const ViewInvoice: React.FC<InvoiceProps> = ({ data, onBack }) => {
                     </Grid>
                 </Grid>
             </Box>
-            {/* The decorative stripe touching the very edge */}
             <Box sx={{ height: 10, bgcolor: PRIMARY_RUST, width: '100%' }} />
         </Box>
       </Paper>
