@@ -8,6 +8,6 @@ export const navConfig = [
   { title: 'Dashboard', path: '/', icon: <DashboardIcon fontSize="small" />  },
   { title: 'Customers', path: '/customers', icon: <PeopleIcon fontSize="small" /> },
   { title: 'Billing & Invoices', path: '/billing', icon: <ReceiptIcon fontSize="small" /> },
-  { title: 'Finance', path: '/finance', icon: <AccountBalanceIcon fontSize="small" /> },
+  { title: 'Payments', path: '/payments', icon: <AccountBalanceIcon fontSize="small" /> },
   { title: 'Staff Management', path: '/staff', icon: <BadgeIcon fontSize="small" /> }, 
 ];

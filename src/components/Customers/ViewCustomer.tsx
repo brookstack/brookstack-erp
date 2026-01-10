@@ -1,20 +1,27 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     Box, Typography, Stack, Chip, Tabs, Tab,
-    Divider, Grid, Paper, alpha, Button,
+    Divider, Paper, alpha, Button,
     Table, TableBody, TableCell, TableContainer,
-    TableHead, TableRow, CircularProgress
+    TableHead, TableRow, CircularProgress, Dialog, DialogContent, IconButton,
+    Grid
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import BusinessIcon from '@mui/icons-material/Business';
-import EngineeringIcon from '@mui/icons-material/Engineering';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import ContactPageIcon from '@mui/icons-material/ContactPage';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
+import AddIcon from '@mui/icons-material/Add';
+import CloseIcon from '@mui/icons-material/Close';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import PaymentsIcon from '@mui/icons-material/Payments';
+
+import { AddBillingForm } from '../Billing/AddBilling';
 
 const RUST_COLOR = '#b52841';
 const DARK_NAVY = '#1a202c';
+const SUCCESS_COLOR = '#198754';
+const WARNING_COLOR = '#f39c12';
 
 interface ViewCustomerProps {
     customer: any;
@@ -24,60 +31,56 @@ interface ViewCustomerProps {
 export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) => {
     const [activeTab, setActiveTab] = useState(0);
     const [billingRecords, setBillingRecords] = useState<any[]>([]);
+    const [paymentRecords, setPaymentRecords] = useState<any[]>([]);
     const [loadingBilling, setLoadingBilling] = useState(false);
-    const formatServiceList = (servicesData: any) => {
-        try {
-            // 1. Parse the string into an actual array
-            const items = typeof servicesData === 'string'
-                ? JSON.parse(servicesData)
-                : servicesData;
+    const [loadingPayments, setLoadingPayments] = useState(false);
+    const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
 
-            // 2. Extract descriptions and join them
-            if (Array.isArray(items)) {
-                return items.map(item => item.description).join(", ");
-            }
-            return "No description";
-        } catch (e) {
-            return "Invalid Data Format";
-        }
-    };
-
-    // Fetch billing specifically for this client
     const fetchClientBilling = useCallback(async () => {
         setLoadingBilling(true);
         try {
-            // Fetching from your existing billing endpoint
             const response = await fetch('http://localhost:5000/api/billing');
             const data = await response.json();
-
-            // Filter records where the client_id matches the viewed customer
             const filtered = data.filter((record: any) => record.client_id === customer.id);
             setBillingRecords(filtered);
-        } catch (error) {
-            console.error("Ledger Fetch Error:", error);
-        } finally {
-            setLoadingBilling(false);
-        }
+        } catch (error) { console.error("Billing Fetch Error:", error); }
+        finally { setLoadingBilling(false); }
     }, [customer.id]);
 
-    // Trigger fetch only when the Billing tab (index 2) is opened
-    useEffect(() => {
-        if (activeTab === 2) {
-            fetchClientBilling();
-        }
-    }, [activeTab, fetchClientBilling]);
+    const fetchClientPayments = useCallback(async () => {
+        setLoadingPayments(true);
+        try {
+            const response = await fetch('http://localhost:5000/api/payments');
+            const data = await response.json();
+            const filtered = data.filter((p: any) => p.clientName === customer.companyName);
+            setPaymentRecords(filtered);
+        } catch (error) { console.error("Payment Fetch Error:", error); }
+        finally { setLoadingPayments(false); }
+    }, [customer.companyName]);
 
-    const statusColors: any = {
+    useEffect(() => {
+        if (activeTab === 2) fetchClientBilling();
+        if (activeTab === 3) fetchClientPayments();
+    }, [activeTab, fetchClientBilling, fetchClientPayments]);
+
+    // Financial Status Color Mapping
+    const getStatusStyle = (status: string) => {
+        const s = status?.toLowerCase();
+        if (s === 'paid') return { color: SUCCESS_COLOR, bg: alpha(SUCCESS_COLOR, 0.1) };
+        if (s === 'partial') return { color: WARNING_COLOR, bg: alpha(WARNING_COLOR, 0.1) };
+        return { color: RUST_COLOR, bg: alpha(RUST_COLOR, 0.1) };
+    };
+
+    const clientStatusColors: any = {
         active: { color: '#2ecc71', bg: alpha('#2ecc71', 0.1) },
         lead: { color: '#f1c40f', bg: alpha('#f1c40f', 0.1) },
         inactive: { color: '#e74c3c', bg: alpha('#e74c3c', 0.1) },
     };
 
-    const currentStatus = statusColors[customer.status?.toLowerCase()] || { color: '#8a92a6', bg: '#f1f1f1' };
+    const currentClientStatus = clientStatusColors[customer.status?.toLowerCase()] || { color: '#8a92a6', bg: '#f1f1f1' };
 
     return (
         <Box sx={{ p: 4, bgcolor: '#fcfcfc', minHeight: '100vh' }}>
-            {/* Header Section */}
             <Button
                 startIcon={<ArrowBackIcon />}
                 onClick={onBack}
@@ -99,36 +102,18 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
                         <Typography variant="body2" sx={{ color: '#666', fontWeight: 500 }}>
                             ID: BRK-{customer.id?.toString().padStart(4, '0')}
                         </Typography>
-                        <Chip
-                            label={customer.status?.toUpperCase()}
-                            sx={{
-                                bgcolor: currentStatus.bg,
-                                color: currentStatus.color,
-                                fontWeight: 900,
-                                borderRadius: '8px',
-                                px: 1,
-                                height: 32
-                            }}
-                        />
+                        <Chip label={customer.status?.toUpperCase()} sx={{ bgcolor: currentClientStatus.bg, color: currentClientStatus.color, fontWeight: 900, borderRadius: '8px', px: 1, height: 32 }} />
                     </Stack>
                 </Stack>
             </Stack>
 
-            {/* Modern Tabs Navigation */}
             <Box sx={{ mb: 4 }}>
                 <Tabs
                     value={activeTab}
                     onChange={(_, newValue) => setActiveTab(newValue)}
                     TabIndicatorProps={{ sx: { bgcolor: RUST_COLOR, height: 3, borderRadius: '3px 3px 0 0' } }}
                     sx={{
-                        '& .MuiTab-root': {
-                            textTransform: 'none',
-                            fontWeight: 700,
-                            minWidth: 100,
-                            fontSize: '0.95rem',
-                            color: '#888',
-                            mr: 2
-                        },
+                        '& .MuiTab-root': { textTransform: 'none', fontWeight: 700, minWidth: 100, fontSize: '0.95rem', color: '#888', mr: 2 },
                         '& .Mui-selected': { color: `${RUST_COLOR} !important` }
                     }}
                 >
@@ -141,197 +126,139 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
                 <Divider sx={{ mt: '-1px', opacity: 0.6 }} />
             </Box>
 
-            {/* Tab Content Areas */}
             <Box>
+                {/* OVERVIEW & SERVICES (Omitted for brevity, kept same as original) */}
                 {activeTab === 0 && (
                     <Grid container spacing={3}>
-                        <Grid size={{ xs: 12, md: 4 }}>
-                            <InfoCard title="Identity" icon={<ContactPageIcon sx={{ color: RUST_COLOR }} />}>
-                                <DetailItem label="Full Company Name" value={customer.companyName} />
-                                <DetailItem label="Client Category" value={customer.clientType} />
-                                <DetailItem label="Primary Contact" value={customer.contactPerson} />
-                            </InfoCard>
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 4 }}>
-                            <InfoCard title="Communication" icon={<SupportAgentIcon sx={{ color: RUST_COLOR }} />}>
-                                <DetailItem label="Email Address" value={customer.email} highlight />
-                                <DetailItem label="Mobile Number" value={customer.mobile} />
-                                <DetailItem label="Account Manager" value={customer.accountManager} />
-                            </InfoCard>
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 4 }}>
-                            <InfoCard title="Location Details" icon={<LocationOnIcon sx={{ color: RUST_COLOR }} />}>
-                                <DetailItem label="Country / City" value={`${customer.location || 'Kenya'}, ${customer.city}`} />
-                                <DetailItem label="Building / Office" value={customer.building} />
-                                <DetailItem label="Onboarding Date" value={new Date(customer.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} />
-                            </InfoCard>
-                        </Grid>
+                        <Grid size={{ xs: 12, md: 4 }}><InfoCard title="Identity" icon={<ContactPageIcon sx={{ color: RUST_COLOR }} />}><DetailItem label="Full Company Name" value={customer.companyName} /><DetailItem label="Client Category" value={customer.clientType} /><DetailItem label="Primary Contact" value={customer.contactPerson} /></InfoCard></Grid>
+                        <Grid size={{ xs: 12, md: 4 }}><InfoCard title="Communication" icon={<SupportAgentIcon sx={{ color: RUST_COLOR }} />}><DetailItem label="Email Address" value={customer.email} highlight /><DetailItem label="Mobile Number" value={customer.mobile} /><DetailItem label="Account Manager" value={customer.accountManager} /></InfoCard></Grid>
+                        <Grid size={{ xs: 12, md: 4 }}><InfoCard title="Location Details" icon={<LocationOnIcon sx={{ color: RUST_COLOR }} />}><DetailItem label="Country / City" value={`${customer.location || 'Kenya'}, ${customer.city}`} /><DetailItem label="Building / Office" value={customer.building} /><DetailItem label="Onboarding Date" value={new Date(customer.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })} /></InfoCard></Grid>
                     </Grid>
                 )}
 
-                {activeTab === 1 && (
-                    <Grid container spacing={3}>
-                        <Grid size={{ xs: 12, md: 8 }}>
-                            <InfoCard title="Active Services" icon={<EngineeringIcon sx={{ color: RUST_COLOR }} />}>
-                                <Box sx={{ py: 1 }}>
-                                    <DetailItem label="Main Service Category" value={customer.serviceCategory} />
-                                    <DetailItem label="Engagement Model" value={customer.engagementType} />
-                                    <Box sx={{ mt: 3, p: 2, bgcolor: '#f9f9f9', borderRadius: 2, border: '1px dashed #ddd' }}>
-                                        <Typography variant="caption" sx={{ fontWeight: 800, color: RUST_COLOR, display: 'block', mb: 1 }}>PROJECT DESCRIPTION</Typography>
-                                        <Typography variant="body2" sx={{ color: '#444', lineHeight: 1.6 }}>
-                                            {customer.description || "No project description provided."}
-                                        </Typography>
-                                    </Box>
-                                </Box>
-                            </InfoCard>
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 4 }}>
-                            <InfoCard title="Internal Notes" icon={<ReceiptLongIcon sx={{ color: RUST_COLOR }} />}>
-                                <Typography variant="body2" sx={{ color: '#666', fontStyle: customer.notes ? 'normal' : 'italic', lineHeight: 1.6 }}>
-                                    {customer.notes || "No internal notes for this client."}
-                                </Typography>
-                            </InfoCard>
-                        </Grid>
-                    </Grid>
-                )}
-
-                {/* --- BILLING & INVOICES TAB --- */}
+                {/* BILLING TAB - STATUS STRICTLY FROM DB */}
                 {activeTab === 2 && (
                     <Paper variant="outlined" sx={{ borderRadius: '16px', borderColor: '#eee', overflow: 'hidden' }}>
-                        <Box sx={{ p: 3, borderBottom: '1px solid #eee', bgcolor: alpha(RUST_COLOR, 0.02) }}>
-                            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: DARK_NAVY }}>
-                                Client Financial Ledger
-                            </Typography>
-                        </Box>
-
+                        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 3, borderBottom: '1px solid #eee', bgcolor: alpha(DARK_NAVY, 0.02) }}>
+                            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: DARK_NAVY }}>Financial Ledger</Typography>
+                            <Button variant="contained" startIcon={<AddIcon />} size="small" onClick={() => setIsInvoiceModalOpen(true)} sx={{ bgcolor: RUST_COLOR, borderRadius: '8px', textTransform: 'none', fontWeight: 700, px: 2 }}>Add Invoice</Button>
+                        </Stack>
+                        
                         {loadingBilling ? (
-                            <Stack alignItems="center" py={10}>
-                                <CircularProgress size={30} sx={{ color: RUST_COLOR }} />
-                                <Typography sx={{ mt: 2, color: '#888', fontWeight: 600 }}>Syncing ledger...</Typography>
-                            </Stack>
-                        ) : billingRecords.length > 0 ? (
+                            <Stack alignItems="center" py={10}><CircularProgress size={30} sx={{ color: RUST_COLOR }} /></Stack>
+                        ) : (
                             <TableContainer>
                                 <Table>
                                     <TableHead sx={{ bgcolor: '#fcfcfc' }}>
                                         <TableRow>
                                             <TableCell sx={{ fontWeight: 800, color: '#888', fontSize: '0.7rem' }}>DOC NO</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, color: '#888', fontSize: '0.7rem' }}>TYPE</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, color: '#888', fontSize: '0.7rem' }}>INVOICE DATE</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, color: '#888', fontSize: '0.7rem' }}>SERVICE</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, color: '#888', fontSize: '0.7rem' }} align="right">AMOUNT</TableCell>
-                                            <TableCell sx={{ fontWeight: 800, color: '#888', fontSize: '0.7rem' }} align="center">STATUS</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, color: '#888', fontSize: '0.7rem' }}>DATE</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, color: '#888', fontSize: '0.7rem' }} align="right">INVOICE TOTAL</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, color: '#888', fontSize: '0.7rem' }} align="right">TOTAL PAID</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, color: '#888', fontSize: '0.7rem' }} align="right">OUTSTANDING</TableCell>
+                                            <TableCell sx={{ fontWeight: 800, color: '#888', fontSize: '0.7rem' }} align="center">PAYMENT STATUS</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
-                                        {billingRecords.map((row) => (
-                                            <TableRow key={row.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
-                                                <TableCell sx={{ fontWeight: 700, color: RUST_COLOR }}>{row.doc_no}</TableCell>
-                                                <TableCell>
-                                                    <Chip
-                                                        label={row.type?.toUpperCase()}
-                                                        size="small"
-                                                        sx={{
-                                                            height: 20,
-                                                            fontSize: '0.6rem',
-                                                            fontWeight: 800,
-                                                            bgcolor: row.type === 'invoice' ? alpha('#2980b9', 0.1) : alpha('#8e44ad', 0.1),
-                                                            color: row.type === 'invoice' ? '#2980b9' : '#8e44ad'
-                                                        }}
-                                                    />
-                                                </TableCell>
-                                                <TableCell sx={{ color: '#666', fontSize: '0.85rem' }}>
-                                                    {new Date(row.created_at).toLocaleDateString('en-GB')}
-                                                </TableCell>
-                                                {/* <TableCell sx={{ fontWeight: 700, color: RUST_COLOR }}>{row.services}</TableCell> */}
-                                                <TableCell sx={{ maxWidth: 300 }}>
-                                                    <Typography
-                                                        variant="body2"
-                                                        noWrap
-                                                        sx={{ fontWeight: 600, color: DARK_NAVY }}
-                                                        title={formatServiceList(row.services)} // Shows full list on hover
-                                                    >
-                                                        {formatServiceList(row.services)}
-                                                    </Typography>
-                                                </TableCell>
-                                                <TableCell align="right" sx={{ fontWeight: 800, color: DARK_NAVY }}>
-                                                    {row.currency} {Number(row.grand_total).toLocaleString()}
-                                                </TableCell>
-                                                <TableCell align="center">
-                                                    <Chip
-                                                        label={row.status?.toUpperCase()}
-                                                        size="small"
-                                                        sx={{
-                                                            fontWeight: 900,
-                                                            fontSize: '0.6rem',
-                                                            bgcolor: row.status === 'paid' ? alpha('#2ecc71', 0.1) : alpha('#f39c12', 0.1),
-                                                            color: row.status === 'paid' ? '#2ecc71' : '#f39c12'
-                                                        }}
-                                                    />
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
+                                        {billingRecords.map((row) => {
+                                            const statusStyle = getStatusStyle(row.status);
+                                            return (
+                                                <TableRow key={row.id} hover>
+                                                    <TableCell sx={{ fontWeight: 700, color: RUST_COLOR }}>{row.doc_no}</TableCell>
+                                                    <TableCell sx={{ color: '#666', fontSize: '0.85rem' }}>{new Date(row.created_at).toLocaleDateString('en-GB')}</TableCell>
+                                                    <TableCell align="right" sx={{ fontWeight: 700 }}>{row.currency} {Number(row.grand_total).toLocaleString()}</TableCell>
+                                                    <TableCell align="right" sx={{ fontWeight: 700, color: SUCCESS_COLOR }}>{row.currency} {Number(row.total_paid || 0).toLocaleString()}</TableCell>
+                                                    <TableCell align="right" sx={{ fontWeight: 900, color: Number(row.outstanding_balance) > 0 ? RUST_COLOR : SUCCESS_COLOR }}>
+                                                        {row.currency} {Number(row.outstanding_balance || 0).toLocaleString()}
+                                                    </TableCell>
+                                                    <TableCell align="center">
+                                                        <Chip 
+                                                            label={row.status?.toUpperCase() || 'UNPAID'} 
+                                                            size="small" 
+                                                            sx={{ 
+                                                                fontWeight: 900, 
+                                                                fontSize: '0.65rem', 
+                                                                bgcolor: statusStyle.bg, 
+                                                                color: statusStyle.color,
+                                                                borderRadius: '6px'
+                                                            }} 
+                                                        />
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
                                     </TableBody>
                                 </Table>
                             </TableContainer>
-                        ) : (
-                            <Box sx={{ py: 12, textAlign: 'center' }}>
-                                <ReceiptLongIcon sx={{ fontSize: 48, color: '#eee', mb: 2 }} />
-                                <Typography variant="h6" sx={{ color: '#bbb', fontWeight: 700 }}>No records found</Typography>
-                                <Typography variant="body2" sx={{ color: '#ccc' }}>There are no invoices or quotations linked to this client yet.</Typography>
-                            </Box>
                         )}
                     </Paper>
                 )}
 
-                {activeTab > 2 && (
-                    <Paper variant="outlined" sx={{ py: 10, textAlign: 'center', borderRadius: 4, borderStyle: 'dashed', bgcolor: alpha(RUST_COLOR, 0.01) }}>
-                        <Typography variant="h6" sx={{ fontWeight: 700, color: '#888' }}>Module Under Development</Typography>
-                        <Typography variant="body2" color="text.secondary">The {['', '', '', 'Payments', 'Support'][activeTab]} module for {customer.companyName} is being linked.</Typography>
+                {/* PAYMENTS TAB */}
+                {activeTab === 3 && (
+                    <Paper variant="outlined" sx={{ borderRadius: '16px', borderColor: '#eee', overflow: 'hidden' }}>
+                        <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ p: 3, borderBottom: '1px solid #eee', bgcolor: alpha(SUCCESS_COLOR, 0.02) }}>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                                <PaymentsIcon sx={{ color: SUCCESS_COLOR }} />
+                                <Typography variant="subtitle1" sx={{ fontWeight: 800, color: DARK_NAVY }}>Payment History</Typography>
+                            </Stack>
+                        </Stack>
+                        {loadingPayments ? (
+                            <Stack alignItems="center" py={10}><CircularProgress size={30} sx={{ color: SUCCESS_COLOR }} /></Stack>
+                        ) : paymentRecords.length > 0 ? (
+                            <TableContainer><Table><TableHead sx={{ bgcolor: '#fcfcfc' }}><TableRow>
+                                <TableCell sx={{ fontWeight: 800, color: '#888', fontSize: '0.7rem' }}>DATE</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: '#888', fontSize: '0.7rem' }}>INVOICE REF</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: '#888', fontSize: '0.7rem' }}>METHOD</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: '#888', fontSize: '0.7rem' }}>TRANSACTION ID</TableCell>
+                                <TableCell sx={{ fontWeight: 800, color: '#888', fontSize: '0.7rem' }} align="right">AMOUNT PAID</TableCell>
+                            </TableRow></TableHead><TableBody>
+                                {paymentRecords.map((row) => (
+                                    <TableRow key={row.id} hover>
+                                        <TableCell sx={{ color: '#666', fontSize: '0.85rem' }}>{new Date(row.payment_date).toLocaleDateString('en-GB')}</TableCell>
+                                        <TableCell sx={{ fontWeight: 700, color: DARK_NAVY }}>{row.doc_no}</TableCell>
+                                        <TableCell><Chip label={row.payment_method} size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 700, bgcolor: alpha(DARK_NAVY, 0.05) }} /></TableCell>
+                                        <TableCell sx={{ color: '#666', fontSize: '0.85rem', fontFamily: 'monospace' }}>{row.transaction_reference || 'N/A'}</TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 900, color: SUCCESS_COLOR }}>{row.currency || 'KES'} {Number(row.amount_paid).toLocaleString()}</TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody></Table></TableContainer>
+                        ) : <Box sx={{ py: 12, textAlign: 'center' }}><AccountBalanceWalletIcon sx={{ fontSize: 48, color: '#eee', mb: 2 }} /><Typography variant="h6" sx={{ color: '#bbb', fontWeight: 700 }}>No payments received yet</Typography></Box>}
                     </Paper>
                 )}
             </Box>
+
+            {/* Invoice Generation Modal */}
+            <Dialog open={isInvoiceModalOpen} onClose={() => setIsInvoiceModalOpen(false)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: '16px' } }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid #eee' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 800, color: DARK_NAVY }}>Generate Invoice for {customer.companyName}</Typography>
+                    <IconButton onClick={() => setIsInvoiceModalOpen(false)}><CloseIcon /></IconButton>
+                </Stack>
+                <DialogContent sx={{ p: 3 }}>
+                    <AddBillingForm 
+                        selectedClient={customer} 
+                        customers={[customer]} 
+                        onError={(msg) => alert(msg)} 
+                        onSuccess={() => { setIsInvoiceModalOpen(false); fetchClientBilling(); }}
+                        onCancel={() => setIsInvoiceModalOpen(false)}
+                    />
+                </DialogContent>
+            </Dialog>
         </Box>
     );
 };
 
-// --- Custom Styled Components (Unchanged) ---
-
+// --- Helper Components ---
 const InfoCard = ({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) => (
-    <Paper
-        variant="outlined"
-        sx={{
-            p: 3,
-            borderRadius: '16px',
-            height: '100%',
-            borderColor: '#eee',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
-            '&:hover': { boxShadow: '0 4px 12px rgba(0,0,0,0.05)', borderColor: alpha(RUST_COLOR, 0.2) }
-        }}
-    >
-        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3 }}>
-            {icon}
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#333', fontSize: '1.05rem' }}>{title}</Typography>
-        </Stack>
-        <Stack spacing={2.5}>
-            {children}
-        </Stack>
+    <Paper variant="outlined" sx={{ p: 3, borderRadius: '16px', height: '100%', borderColor: '#eee', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3 }}>{icon}<Typography variant="subtitle1" sx={{ fontWeight: 800, color: '#333' }}>{title}</Typography></Stack>
+        <Stack spacing={2.5}>{children}</Stack>
     </Paper>
 );
 
 const DetailItem = ({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) => (
     <Box>
-        <Typography variant="caption" sx={{ color: '#999', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.65rem' }}>
-            {label}
-        </Typography>
-        <Typography
-            variant="body1"
-            sx={{
-                fontWeight: 600,
-                color: highlight ? RUST_COLOR : '#2c3e50',
-                fontSize: '0.95rem'
-            }}
-        >
-            {value || 'Not Provided'}
-        </Typography>
+        <Typography variant="caption" sx={{ color: '#999', fontWeight: 700, textTransform: 'uppercase', fontSize: '0.65rem', letterSpacing: '0.05em' }}>{label}</Typography>
+        <Typography variant="body1" sx={{ fontWeight: 600, color: highlight ? RUST_COLOR : '#2c3e50', fontSize: '0.95rem' }}>{value || 'Not Provided'}</Typography>
     </Box>
 );

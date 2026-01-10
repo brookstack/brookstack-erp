@@ -14,22 +14,27 @@ const API_BASE_URL = 'http://localhost:5000/api';
 
 interface AddBillingFormProps {
   onSuccess: () => void;
+  onCancel?: () => void; // Added to support the cancel action in modals
   customers: any[];
+  selectedClient?: any;   // NEW: Optional prop for autofilling from Customer View
   initialData?: any;
   onError: (msg: string) => void;
 }
 
 export const AddBillingForm: React.FC<AddBillingFormProps> = ({
   onSuccess,
+  onCancel,
   customers,
+  selectedClient, // Destructured new prop
   initialData,
   onError
 }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
-  // Logic to determine if we are editing an existing record
   const isEditMode = !!initialData;
+  // Field is locked if we are editing OR if a client was specifically passed via props
+  const isClientLocked = isEditMode || !!selectedClient;
 
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -38,7 +43,7 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
   const [form, setForm] = useState({
     type: 'invoice',
     currency: 'KES',
-    clientId: '',
+    clientId: selectedClient?.id || '', // Initialize with selectedClient if available
     notes: '',
     services: [{ description: '', price: 0, vat: false, frequency: 'One-off' }]
   });
@@ -50,12 +55,15 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
         clientId: initialData.client_id || initialData.clientId,
         services: typeof initialData.services === 'string' ? JSON.parse(initialData.services) : initialData.services
       });
+    } else if (selectedClient) {
+      // Sync clientId if selectedClient changes while the form is open
+      setForm(prev => ({ ...prev, clientId: selectedClient.id }));
     }
-  }, [initialData]);
+  }, [initialData, selectedClient]);
 
-  const selectedClient = useMemo(() =>
-    customers.find(c => String(c.id) === String(form.clientId)),
-    [form.clientId, customers]);
+  const activeClient = useMemo(() =>
+    customers.find(c => String(c.id) === String(form.clientId)) || selectedClient,
+    [form.clientId, customers, selectedClient]);
 
   const totals = useMemo(() => {
     const sub = form.services.reduce((acc, curr) => acc + Number(curr.price), 0);
@@ -75,7 +83,8 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
     try {
       const endpoint = isEditMode ? `${API_BASE_URL}/billing/${initialData.id}` : `${API_BASE_URL}/billing`;
       const method = isEditMode ? 'put' : 'post';
-      await axios[method](endpoint, { ...form, sub: totals.sub, vat: totals.vat, grand: totals.grand });
+      // Added client_id specifically to the payload to ensure backend mapping
+      await axios[method](endpoint, { ...form, client_id: form.clientId, sub: totals.sub, vat: totals.vat, grand: totals.grand });
       onSuccess();
     } catch (err: any) {
       const errorMsg = err.response?.data?.details || err.response?.data?.error || "Failed to save billing record.";
@@ -84,7 +93,6 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
     } finally { setLoading(false); }
   };
 
-  // Helper for Input styling and read-only state
   const getFProps = (readOnly: boolean) => ({
     fullWidth: true,
     size: 'small' as const,
@@ -123,34 +131,35 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
       {activeStep === 0 && (
         <Grid container spacing={2}>
           <Grid size={{ xs: 6 }}>
-            {/* Editable in both modes */}
             <TextField {...getFProps(false)} select label="Document Type" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
                 <MenuItem value="invoice">Invoice</MenuItem>
                 <MenuItem value="quotation">Quotation</MenuItem>
             </TextField>
           </Grid>
           <Grid size={{ xs: 6 }}>
-            {/* Editable in both modes */}
             <TextField {...getFProps(false)} select label="Currency" value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })}>
                 {['KES', 'USD', 'EUR'].map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
             </TextField>
           </Grid>
           <Grid size={{ xs: 12 }}>
-            {/* Locked during edit mode */}
-            <TextField {...getFProps(isEditMode)} select label="Select Client" value={form.clientId} onChange={e => setForm({ ...form, clientId: e.target.value })}>
+            <TextField {...getFProps(isClientLocked)} select label="Select Client" value={form.clientId} onChange={e => setForm({ ...form, clientId: e.target.value })}>
+                {/* Fallback MenuItem to show name if selectedClient is passed but not in customers array */}
+                {selectedClient && !customers.some(c => c.id === selectedClient.id) && (
+                    <MenuItem key={selectedClient.id} value={selectedClient.id}>{selectedClient.companyName}</MenuItem>
+                )}
                 {customers.map(c => <MenuItem key={c.id} value={c.id}>{c.companyName}</MenuItem>)}
             </TextField>
           </Grid>
-          {selectedClient && (
+          {activeClient && (
             <Grid size={{ xs: 12 }}>
-              <Box sx={{ p: 2, bgcolor: isEditMode ? alpha(DARK_NAVY, 0.02) : alpha(RUST, 0.05), borderRadius: '8px', border: `1px dashed ${isEditMode ? alpha(DARK_NAVY, 0.2) : RUST}`, display: 'flex', alignItems: 'center', gap: 2 }}>
-                {isEditMode ? <Lock sx={{ color: alpha(DARK_NAVY, 0.4) }} /> : <Business sx={{ color: RUST }} />}
+              <Box sx={{ p: 2, bgcolor: isClientLocked ? alpha(DARK_NAVY, 0.02) : alpha(RUST, 0.05), borderRadius: '8px', border: `1px dashed ${isClientLocked ? alpha(DARK_NAVY, 0.2) : RUST}`, display: 'flex', alignItems: 'center', gap: 2 }}>
+                {isClientLocked ? <Lock sx={{ color: alpha(DARK_NAVY, 0.4) }} /> : <Business sx={{ color: RUST }} />}
                 <Box>
-                  <Typography variant="caption" sx={{ fontWeight: 800, color: isEditMode ? alpha(DARK_NAVY, 0.5) : RUST, letterSpacing: 1 }}>
-                    {isEditMode ? 'CLIENT INFORMATION (LOCKED)' : 'CLIENT DETAILS'}
+                  <Typography variant="caption" sx={{ fontWeight: 800, color: isClientLocked ? alpha(DARK_NAVY, 0.5) : RUST, letterSpacing: 1 }}>
+                    {isClientLocked ? 'CLIENT INFORMATION (LOCKED)' : 'CLIENT DETAILS'}
                   </Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 700 }}>{selectedClient.companyName}</Typography>
-                  <Typography variant="caption" sx={{ display: 'block', color: 'textSecondary' }}>{selectedClient.contactPerson} | {selectedClient.email}</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700 }}>{activeClient.companyName}</Typography>
+                  <Typography variant="caption" sx={{ display: 'block', color: 'textSecondary' }}>{activeClient.contactPerson} | {activeClient.email}</Typography>
                 </Box>
               </Box>
             </Grid>
@@ -216,8 +225,8 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
           <Grid container spacing={2} sx={{ mb: 4 }}>
             <Grid size={{ xs: 12, sm: 7 }}>
               <Typography variant="caption" sx={{ color: RUST, fontWeight: 800, letterSpacing: 1 }}>BILL TO</Typography>
-              <Typography variant="body1" sx={{ fontWeight: 800, color: DARK_NAVY, mt: 0.5 }}>{selectedClient?.companyName}</Typography>
-              <Typography variant="body2" color="textSecondary" sx={{ fontWeight: 500 }}>{selectedClient?.email}</Typography>
+              <Typography variant="body1" sx={{ fontWeight: 800, color: DARK_NAVY, mt: 0.5 }}>{activeClient?.companyName}</Typography>
+              <Typography variant="body2" color="textSecondary" sx={{ fontWeight: 500 }}>{activeClient?.email}</Typography>
             </Grid>
             <Grid size={{ xs: 12, sm: 5 }} sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
               <Typography variant="caption" sx={{ color: RUST, fontWeight: 800, letterSpacing: 1 }}>DATE ISSUED</Typography>
@@ -273,7 +282,13 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
       )}
 
       <Stack direction="row" justifyContent="space-between" sx={{ mt: 4 }}>
-        <Button disabled={activeStep === 0 || loading} onClick={() => setActiveStep(p => p - 1)} sx={{ color: DARK_NAVY, fontWeight: 800, textTransform: 'none' }}>Back</Button>
+        <Button 
+          disabled={loading} 
+          onClick={activeStep === 0 ? onCancel : () => setActiveStep(p => p - 1)} 
+          sx={{ color: DARK_NAVY, fontWeight: 800, textTransform: 'none' }}
+        >
+          {activeStep === 0 ? "Cancel" : "Back"}
+        </Button>
         <Button
           variant="contained"
           disabled={loading || !isStepValid()}

@@ -1,14 +1,18 @@
 import { createTheme, alpha } from '@mui/material/styles';
 
-const PRIMARY_ORANGE = '#b52841'; // Your new primary color
-const SUCCESS_GREEN = '#2e7d32'; // Afrinet green for "Approved/Save"
+const PRIMARY_RUST = '#b52841'; 
+const SUCCESS_GREEN = '#2e7d32'; 
 const BACKGROUND_LIGHT = '#f9fafb';
+
+// Global Font Definition
+const ROBOTO_STACK = '"Roboto", "Helvetica", "Arial", sans-serif';
+const MONO_STACK = 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace';
 
 export const theme = createTheme({
   palette: {
     primary: { 
-      main: PRIMARY_ORANGE,
-      light: alpha(PRIMARY_ORANGE, 0.1),
+      main: PRIMARY_RUST,
+      light: alpha(PRIMARY_RUST, 0.1),
       contrastText: '#fff' 
     },
     success: { 
@@ -25,52 +29,81 @@ export const theme = createTheme({
     },
   },
   typography: {
-    fontFamily: '"Inter", sans-serif',
+    // This sets the default font for all MUI Typography components
+    fontFamily: ROBOTO_STACK,
+    h1: { fontWeight: 700 },
+    h2: { fontWeight: 700 },
+    h3: { fontWeight: 700 },
     h4: { fontWeight: 700, letterSpacing: '-0.02em' },
+    h5: { fontWeight: 600 },
+    h6: { fontWeight: 600 },
+    subtitle1: { fontWeight: 500 },
+    subtitle2: { fontWeight: 500 },
+    body1: { fontWeight: 400 },
+    body2: { fontWeight: 400 },
     button: { textTransform: 'none', fontWeight: 600 },
+    caption: { fontWeight: 400 },
+    overline: { fontWeight: 500 },
   },
-  shape: { borderRadius: 12 },
+  shape: { borderRadius: 8 },
   components: {
-    // Buttons: Pill-shaped and using the new Primary color
+    MuiCssBaseline: {
+      styleOverrides: `
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
+        
+        body {
+          font-family: ${ROBOTO_STACK};
+          -webkit-font-smoothing: antialiased;
+          -moz-osx-font-smoothing: grayscale;
+        }
+        
+        /* Ensures tables and all child elements inherit the font */
+        table, th, td {
+          font-family: ${ROBOTO_STACK} !important;
+        }
+
+        code, pre {
+          font-family: ${MONO_STACK} !important;
+        }
+      `,
+    },
     MuiButton: {
       styleOverrides: {
         root: {
           borderRadius: 8,
-          padding: '8px 20px',
-          boxShadow: 'none',
-          '&:hover': { boxShadow: 'none' },
-        },
-        containedPrimary: {
-          backgroundColor: PRIMARY_ORANGE,
-          '&:hover': { backgroundColor: '#96350b' }, // Darker shade for hover
+          fontFamily: ROBOTO_STACK,
+          fontWeight: 600,
         },
       },
     },
-    // Sidebar active state using your new Primary color
-    MuiListItemButton: {
+    MuiTableCell: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
-          margin: '4px 8px',
-          '&.Mui-selected': {
-            backgroundColor: alpha(PRIMARY_ORANGE, 0.08),
-            color: PRIMARY_ORANGE,
-            '& .MuiListItemIcon-root': { color: PRIMARY_ORANGE },
-          },
-          '&:hover': {
-            backgroundColor: alpha(PRIMARY_ORANGE, 0.04),
-          },
+          fontFamily: ROBOTO_STACK,
+          fontSize: '0.875rem',
+        },
+        head: {
+          fontWeight: 600,
+          color: '#374151',
         },
       },
     },
-    // Inputs: Focus ring now matches your Primary color
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
+          fontFamily: ROBOTO_STACK,
           '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-            borderColor: PRIMARY_ORANGE,
-            boxShadow: `0 0 0 4px ${alpha(PRIMARY_ORANGE, 0.1)}`,
+            borderColor: PRIMARY_RUST,
+            boxShadow: `0 0 0 4px ${alpha(PRIMARY_RUST, 0.1)}`,
           },
+        },
+      },
+    },
+    MuiChip: {
+      styleOverrides: {
+        root: {
+          fontFamily: ROBOTO_STACK,
+          fontWeight: 600,
         },
       },
     },

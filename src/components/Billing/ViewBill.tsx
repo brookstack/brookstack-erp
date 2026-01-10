@@ -50,7 +50,7 @@ export const ViewInvoice: React.FC<InvoiceProps> = ({ data, onBack }) => {
           onClick={onBack} 
           sx={{ color: DARK_NAVY, fontWeight: 700, textTransform: 'none' }}
         >
-          {isMobile ? 'Back' : 'Back to Ledger'}
+          {isMobile ? 'Back' : 'Back to Invoices'}
         </Button>
         <Stack direction="row" spacing={1}>
           {!isMobile && (

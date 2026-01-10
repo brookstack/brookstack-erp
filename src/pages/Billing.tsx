@@ -6,14 +6,18 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import PaymentOutlinedIcon from '@mui/icons-material/PaymentOutlined';
+
+// Components
 import { DataTable } from '../components/DataTable';
 import { AddBillingForm } from '../components/Billing/AddBilling';
 import { ViewInvoice } from '../components/Billing/ViewBill';
 import { AddPaymentForm } from '../components/Payments/PaymentsForm';
-import PaymentOutlinedIcon from '@mui/icons-material/PaymentOutlined';
 
 const RUST = '#b52841';
 const DARK_NAVY = '#1a202c';
+const SUCCESS_GREEN = '#198754';
+const WARNING_ORANGE = '#f39c12';
 
 export const BillingPage = () => {
   const [billingRecords, setBillingRecords] = useState<any[]>([]);
@@ -24,7 +28,6 @@ export const BillingPage = () => {
   const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
   const [editData, setEditData] = useState<any | null>(null);
 
-  // Payment states
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentTarget, setPaymentTarget] = useState<any | null>(null);
 
@@ -50,7 +53,7 @@ export const BillingPage = () => {
       setBillingRecords(billingData);
       setCustomers(customerData);
     } catch (error) {
-      setSnackbar({ open: true, message: 'Failed to connect to Brookstack API', severity: 'error' });
+      setSnackbar({ open: true, message: 'Connection Error', severity: 'error' });
     } finally {
       setLoading(false);
     }
@@ -62,22 +65,15 @@ export const BillingPage = () => {
 
   const handleActualDelete = async () => {
     if (!deleteConfirm.data?.id) return;
-
     try {
       const response = await fetch(`http://localhost:5000/api/billing/${deleteConfirm.data.id}`, {
         method: 'DELETE'
       });
-
       if (response.ok) {
-        setSnackbar({
-          open: true,
-          message: `Record ${deleteConfirm.data.doc_no} deleted successfully`,
-          severity: 'success'
-        });
+        setSnackbar({ open: true, message: 'Record deleted', severity: 'success' });
         fetchBillingData();
       } else {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Delete failed');
+        throw new Error('Delete failed');
       }
     } catch (err: any) {
       setSnackbar({ open: true, message: err.message, severity: 'error' });
@@ -89,72 +85,85 @@ export const BillingPage = () => {
   const columns = [
     {
       id: 'doc_no',
-      label: 'DOCUMENT NO',
+      label: 'DOCUMENT',
       render: (row: any) => (
         <Box>
-          <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: RUST }}>
+          <Typography sx={{ fontSize: '0.75rem', color: RUST }}>
             {row.doc_no || 'PENDING'}
           </Typography>
-          <Chip
-            label={row.type?.toUpperCase()}
-            size="small"
-            sx={{
-              height: 16, fontSize: '0.55rem', fontWeight: 900,
-              bgcolor: row.type === 'invoice' ? alpha('#2980b9', 0.1) : alpha('#8e44ad', 0.1),
-              color: row.type === 'invoice' ? '#2980b9' : '#8e44ad',
-              borderRadius: '4px', mt: 0.5
-            }}
-          />
+          <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'textSecondary' }}>
+            {row.type?.toUpperCase()}
+          </Typography>
         </Box>
       )
     },
     {
       id: 'client',
-      label: 'CLIENT CONTACT',
+      label: 'CLIENT',
       render: (row: any) => (
-        <Box>
-          <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: DARK_NAVY }}>
-            {row.clientName || 'Unknown Client'}
-          </Typography>
-          <Typography variant="caption" sx={{ display: 'block', color: 'textSecondary', lineHeight: 1.2 }}>
-            📧 {row.email || 'N/A'}
-          </Typography>
-          <Typography variant="caption" sx={{ display: 'block', color: 'textSecondary' }}>
-            📞 {row.phone || 'N/A'}
-          </Typography>
-        </Box>
+        <Typography sx={{ fontSize: '0.85rem', color: DARK_NAVY }}>
+          {row.clientName || '---'}
+        </Typography>
       )
     },
     {
       id: 'financials',
-      label: 'FINANCIAL SUMMARY',
+      label: 'INVOICE TOTAL',
       render: (row: any) => (
-        <Box>
-          <Typography sx={{ fontSize: '0.85rem', fontWeight: 800 }}>
-            {row.currency} {Number(row.grand_total).toLocaleString()}
-          </Typography>
-          <Stack direction="row" spacing={1}>
-            <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.65rem' }}>
-              Exclusive VAT: {Number(row.subtotal).toLocaleString()}
-            </Typography>
-          </Stack>
-        </Box>
+        <Typography sx={{ fontSize: '0.85rem' }}>
+          {row.currency} {Number(row.grand_total).toLocaleString()}
+        </Typography>
       )
     },
     {
-      id: 'status',
-      label: 'STATUS',
+      id: 'paid',
+      label: 'TOTAL PAID',
+      render: (row: any) => (
+        <Typography sx={{ fontSize: '0.85rem', color: SUCCESS_GREEN }}>
+          {row.currency} {Number(row.total_paid || 0).toLocaleString()}
+        </Typography>
+      )
+    },
+    {
+      id: 'balance',
+      label: 'OUTSTANDING',
       render: (row: any) => {
-        const statusConfig: any = {
-          paid: { color: '#198754', bg: alpha('#198754', 0.1) },
-          pending: { color: '#f39c12', bg: alpha('#f39c12', 0.1) },
-        };
-        const config = statusConfig[row.status?.toLowerCase()] || statusConfig.pending;
+        const balance = Number(row.grand_total) - Number(row.total_paid || 0);
+        return (
+          <Typography sx={{ fontSize: '0.85rem', color: balance > 0 ? RUST : SUCCESS_GREEN }}>
+            {row.currency} {balance.toLocaleString()}
+          </Typography>
+        );
+      }
+    },
+    {
+      id: 'status',
+      label: 'PAYMENT STATUS',
+      render: (row: any) => {
+        const totalPaid = Number(row.total_paid || 0);
+        const grandTotal = Number(row.grand_total);
+        
+        let label = 'PENDING';
+        let color = WARNING_ORANGE;
+
+        if (totalPaid >= grandTotal && grandTotal > 0) {
+          label = 'FULLY PAID';
+          color = SUCCESS_GREEN;
+        } else if (totalPaid > 0) {
+          label = 'PARTIAL';
+          color = '#2980b9';
+        }
+
         return (
           <Chip
-            label={row.status?.toUpperCase() || 'PENDING'}
+            label={label}
             size="small"
-            sx={{ bgcolor: config.bg, color: config.color, fontWeight: 800, fontSize: '0.65rem' }}
+            sx={{ 
+                bgcolor: alpha(color, 0.1), 
+                color: color, 
+                fontSize: '0.65rem',
+                borderRadius: '6px' 
+            }}
           />
         );
       }
@@ -165,20 +174,14 @@ export const BillingPage = () => {
     <Box sx={{ width: '100%', p: viewMode ? 0 : 3 }}>
       {loading ? (
         <Stack alignItems="center" py={10}>
-          <CircularProgress sx={{ color: RUST }} />
-          <Typography sx={{ mt: 2, fontWeight: 700, color: RUST }}>Accessing Ledger...</Typography>
+          <CircularProgress size={30} sx={{ color: RUST }} />
+          <Typography sx={{ mt: 2, color: RUST }}>Syncing Ledger...</Typography>
         </Stack>
       ) : viewMode && selectedInvoice ? (
-        <ViewInvoice
-          data={selectedInvoice}
-          onBack={() => {
-            setViewMode(false);
-            setSelectedInvoice(null);
-          }}
-        />
+        <ViewInvoice data={selectedInvoice} onBack={() => { setViewMode(false); setSelectedInvoice(null); }} />
       ) : (
         <DataTable
-          title="Billing & Revenue"
+          title="Billing & Invoice"
           columns={columns}
           data={billingRecords}
           primaryAction={{
@@ -194,108 +197,74 @@ export const BillingPage = () => {
             if (record) { setEditData(record); setModalOpen(true); }
           }}
           onDelete={(id) => {
-            const recordToDelete = billingRecords.find(r => r.id === id);
-            setDeleteConfirm({ open: true, data: recordToDelete });
+            const record = billingRecords.find(r => r.id === id);
+            setDeleteConfirm({ open: true, data: record });
           }}
-          additionalActions={(row: any) => row.type === 'invoice' && row.status !== 'paid' ? ({
-            label: 'Payments',  
-            icon: <PaymentOutlinedIcon />,   
-            color: "#36454F",
-            onClick: (row) => {
-              setPaymentTarget(row);
-              setPaymentModalOpen(true);
-            }
-          }) : null}
+          additionalActions={(row: any) => {
+            const isPaid = Number(row.total_paid || 0) >= Number(row.grand_total);
+            return row.type === 'invoice' && !isPaid ? ({
+              label: 'Record Payment',  
+              icon: <PaymentOutlinedIcon sx={{ fontSize: '1.2rem' }} />,   
+              color: DARK_NAVY,
+              onClick: (row) => { setPaymentTarget(row); setPaymentModalOpen(true); }
+            }) : null;
+          }}
         />
       )}
 
-      {/* --- DELETE CONFIRMATION DIALOG --- */}
-      <Dialog
-        open={deleteConfirm.open}
-        onClose={() => setDeleteConfirm({ open: false, data: null })}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 800, color: '#d32f2f' }}>
-          <WarningAmberIcon color="error" /> Confirm Deletion
-        </DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete <strong>{deleteConfirm.data?.doc_no}</strong>?
-            This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDeleteConfirm({ open: false, data: null })} variant="outlined" sx={{ color: DARK_NAVY, borderColor: DARK_NAVY }}>
-            Cancel
-          </Button>
-          <Button
-            onClick={handleActualDelete}
-            variant="contained"
-            sx={{ bgcolor: '#d32f2f', '&:hover': { bgcolor: '#b71c1c' } }}
-          >
-            Delete Permanently
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* --- TOP-RIGHT SUCCESS/ERROR NOTIFICATION --- */}
+      {/* --- NOTIFICATIONS --- */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={4000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-        sx={{ mt: 2 }}
       >
-        <Alert
-          severity={snackbar.severity}
-          variant="filled"
-          sx={{ borderRadius: '8px', fontWeight: 600, width: '100%' }}
-        >
+        <Alert severity={snackbar.severity}>
           {snackbar.message}
         </Alert>
       </Snackbar>
 
-      {/* --- BILLING (ADD/EDIT) MODAL --- */}
-      <Dialog open={modalOpen} onClose={() => setModalOpen(false)} fullWidth maxWidth="md">
-        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid #eee' }}>
-          <Typography variant="h6" sx={{ fontWeight: 800, color: DARK_NAVY }}>
-            {editData ? `Edit ${editData.doc_no}` : 'New Billing Document'}
+      {/* --- DELETE DIALOG --- */}
+      <Dialog open={deleteConfirm.open} onClose={() => setDeleteConfirm({ open: false, data: null })}>
+        <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogContent>
+          <Typography sx={{ fontSize: '0.9rem' }}>
+            Are you sure you want to remove {deleteConfirm.data?.doc_no}?
           </Typography>
-          <IconButton onClick={() => setModalOpen(false)}><CloseIcon /></IconButton>
-        </Stack>
-        <DialogContent sx={{ p: 3 }}>
+        </DialogContent>
+        <DialogActions sx={{ p: 2 }}>
+          <Button onClick={() => setDeleteConfirm({ open: false, data: null })}>Cancel</Button>
+          <Button onClick={handleActualDelete} color="error" variant="contained">Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* --- FORM MODAL --- */}
+      <Dialog open={modalOpen} onClose={() => setModalOpen(false)} fullWidth maxWidth="md">
+        <DialogContent>
           <AddBillingForm
             initialData={editData}
             customers={customers}
-            onSuccess={() => {
-              setModalOpen(false);
-              setSnackbar({ open: true, message: 'Billing generated successfully', severity: 'success' });
-              fetchBillingData();
-            }}
-            onError={(msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' })}
+            onSuccess={() => { setModalOpen(false); fetchBillingData(); }}
+            onError={(msg) => setSnackbar({ open: true, message: msg, severity: 'error' })}
           />
         </DialogContent>
       </Dialog>
 
       {/* --- PAYMENT MODAL --- */}
       <Dialog open={paymentModalOpen} onClose={() => setPaymentModalOpen(false)} fullWidth maxWidth="sm">
-        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid #eee' }}>
-          <Typography variant="h6" sx={{ fontWeight: 800, color: DARK_NAVY }}>
-            Record Client Payment
-          </Typography>
-          <IconButton onClick={() => setPaymentModalOpen(false)}><CloseIcon /></IconButton>
-        </Stack>
-        <DialogContent sx={{ p: 3 }}>
+        <DialogTitle sx={{ borderBottom: '1px solid #eee' }}>
+          Receive Payment
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2 }}>
           {paymentTarget && (
             <AddPaymentForm
               billingRecord={paymentTarget}
               onSuccess={() => {
                 setPaymentModalOpen(false);
-                setSnackbar({ open: true, message: 'Payment recorded successfully', severity: 'success' });
+                setSnackbar({ open: true, message: 'Payment Updated', severity: 'success' });
                 fetchBillingData();
               }}
-              onError={(msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' })}
+              onError={(msg) => setSnackbar({ open: true, message: msg, severity: 'error' })}
             />
           )}
         </DialogContent>

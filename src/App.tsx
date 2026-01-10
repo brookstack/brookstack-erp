@@ -5,6 +5,7 @@ import { DashboardLayout } from './layouts/DashboardLayouts';
 import DashboardPage from './components/AdminDashboard/DashboardPage';
 import { CustomersPage } from './pages/Customers';
 import { BillingPage } from './pages/Billing';
+import { PaymentsPage } from './pages/Payments';
 
 function App() {
   return (
@@ -18,7 +19,7 @@ function App() {
         
         {/* Placeholders for other pages */}
         <Route path="/billing" element={<BillingPage/>} />
-        <Route path="/finance" element={<Typography>Finance Content</Typography>} />
+        <Route path="/payments" element={<PaymentsPage/>} />
         <Route path="/staff" element={<Typography>Staff Management Content</Typography>} />
       </Routes>
     </DashboardLayout>
