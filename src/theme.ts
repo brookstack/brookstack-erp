@@ -1,6 +1,6 @@
 import { createTheme, alpha } from '@mui/material/styles';
 
-const PRIMARY_ORANGE = '#B7410E'; // Your new primary color
+const PRIMARY_ORANGE = '#b52841'; // Your new primary color
 const SUCCESS_GREEN = '#2e7d32'; // Afrinet green for "Approved/Save"
 const BACKGROUND_LIGHT = '#f9fafb';
 

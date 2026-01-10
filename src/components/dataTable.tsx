@@ -13,7 +13,7 @@ import {
     Add as AddIcon
 } from '@mui/icons-material';
 
-const RUST_COLOR = '#b7410e';
+const RUST_COLOR = '#b52841';
 const RUST_HOVER = '#a0360d';
 
 interface Column {

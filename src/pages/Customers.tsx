@@ -10,7 +10,7 @@ import { DataTable } from '../components/DataTable';
 import { AddCustomerForm } from '../components/Customers/AddCustomer';
 import { ViewCustomer } from '../components/Customers/ViewCustomer';
 
-const PRIMARY_RUST = '#b7410e';
+const PRIMARY_RUST = '#b52841';
 const DARK_NAVY = '#1a202c';
 
 export const CustomersPage = () => {

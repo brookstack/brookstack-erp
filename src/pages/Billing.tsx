@@ -10,7 +10,7 @@ import { DataTable } from '../components/DataTable';
 import { AddBillingForm } from '../components/Billing/AddBilling';
 import { ViewInvoice } from '../components/Billing/ViewBill';
 
-const RUST = '#b7410e';
+const RUST = '#b52841';
 const DARK_NAVY = '#1a202c';
 
 export const BillingPage = () => {

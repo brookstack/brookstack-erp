@@ -13,7 +13,7 @@ import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import ContactPageIcon from '@mui/icons-material/ContactPage';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 
-const RUST_COLOR = '#b7410e';
+const RUST_COLOR = '#b52841';
 const DARK_NAVY = '#1a202c';
 
 interface ViewCustomerProps {

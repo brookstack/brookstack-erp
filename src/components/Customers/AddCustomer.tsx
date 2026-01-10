@@ -6,7 +6,7 @@ import {
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 
-const RUST_COLOR = '#b7410e';
+const RUST_COLOR = '#b52841';
 const RUST_HOVER = '#a0360d';
 const SUCCESS_GREEN = '#198754';
 
