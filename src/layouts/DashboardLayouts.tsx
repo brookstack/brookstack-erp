@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom'; 
+import { NavLink, useLocation } from 'react-router-dom';
 import {
     Box,
     Drawer,
@@ -41,23 +41,17 @@ export const DashboardLayout: React.FC<Props> = ({ children }) => {
         <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
             <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Box
+                    component="img"
+                    src="/logo.png"
+                    alt="Brookstack Logo"
                     sx={{
-                        width: 32,
-                        height: 32,
-                        bgcolor: 'primary.main',
+                        width: "100%",
+                        height: "100%",
                         borderRadius: 1.5,
                         display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: 'white',
-                        fontWeight: 'bold',
+                        objectFit: 'contain' // Ensures the logo isn't stretched
                     }}
-                >
-                    B
-                </Box>
-                <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary', letterSpacing: '-0.5px' }}>
-                    Brookstack
-                </Typography>
+                />
             </Box>
 
             <Divider sx={{ borderColor: '#f3f4f6', mx: 2 }} />
@@ -65,7 +59,7 @@ export const DashboardLayout: React.FC<Props> = ({ children }) => {
             <List sx={{ px: 2, py: 3 }}>
                 {navConfig.map((item) => {
                     const isActive = location.pathname === item.path; // Checks if item is active
-                    
+
                     return (
                         <ListItemButton
                             key={item.title}
@@ -96,7 +90,7 @@ export const DashboardLayout: React.FC<Props> = ({ children }) => {
                             </ListItemIcon>
                             <ListItemText
                                 primary={item.title}
-                                primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600, color: "#000"}}
+                                primaryTypographyProps={{ fontSize: '0.875rem', fontWeight: 600, color: "#000" }}
                             />
                         </ListItemButton>
                     );
@@ -106,7 +100,7 @@ export const DashboardLayout: React.FC<Props> = ({ children }) => {
             <Box sx={{ mt: 'auto', p: 2 }}>
                 <Box sx={{ p: 2, bgcolor: '#f9fafb', borderRadius: 3, border: '1px solid #f3f4f6' }}>
                     <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.secondary' }}>
-                       Brookstack ERP v1.0
+                        Brookstack ERP v1.0
                     </Typography>
                 </Box>
             </Box>
