@@ -31,9 +31,9 @@ router.post('/', async (req, res) => {
   try {
     await connection.beginTransaction();
 
+    // Generate Document Number (INV for invoice, QUO for quotation)
     const docNo = `${type === 'invoice' ? 'INV' : 'QUO'}-${Date.now().toString().slice(-6)}`;
     
-    // Ensure services array is stringified for the LONGTEXT/JSON column
     const servicesData = services ? JSON.stringify(services) : JSON.stringify([]);
 
     const sql = `
@@ -62,18 +62,40 @@ router.post('/', async (req, res) => {
 });
 
 /**
- * PUT: Update an existing Billing Record (For the Edit functionality)
+ * PUT: Update an existing Billing Record
+ * Fixes: Added 'type', 'currency', and mapped 'sub/vat/grand' to 'subtotal/vat_total/grand_total'
  */
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
-  const { status, notes, services, sub, vat, grand } = req.body;
+  const { type, currency, status, notes, services, sub, vat, grand } = req.body;
   
+  const connection = await db.getConnection();
   try {
+    await connection.beginTransaction();
+
+    // 1. Fetch current record to check if we need to update the doc_no prefix
+    const [current] = await connection.query('SELECT doc_no, type FROM billing WHERE id = ?', [id]);
+    if (current.length === 0) {
+      return res.status(404).json({ error: "Record not found" });
+    }
+
+    let updatedDocNo = current[0].doc_no;
+
+    // 2. Logic to swap prefix if type changed (e.g., INV-123 to QUO-123)
+    if (type && type !== current[0].type) {
+      const prefix = type === 'invoice' ? 'INV' : 'QUO';
+      const numberPart = current[0].doc_no.split('-')[1] || Date.now().toString().slice(-6);
+      updatedDocNo = `${prefix}-${numberPart}`;
+    }
+
     const servicesData = services ? JSON.stringify(services) : undefined;
     
     const sql = `
       UPDATE billing 
-      SET status = COALESCE(?, status), 
+      SET type = COALESCE(?, type), 
+          doc_no = COALESCE(?, doc_no),
+          currency = COALESCE(?, currency),
+          status = COALESCE(?, status), 
           notes = COALESCE(?, notes), 
           services = COALESCE(?, services),
           subtotal = COALESCE(?, subtotal),
@@ -81,18 +103,33 @@ router.put('/:id', async (req, res) => {
           grand_total = COALESCE(?, grand_total)
       WHERE id = ?`;
 
-    await db.query(sql, [status, notes, servicesData, sub, vat, grand, id]);
-    res.json({ success: true, message: "Record updated successfully" });
+    // Map the incoming frontend fields (sub, vat, grand) to DB columns
+    await connection.query(sql, [
+      type, 
+      updatedDocNo,
+      currency, 
+      status, 
+      notes, 
+      servicesData, 
+      sub, 
+      vat, 
+      grand, 
+      id
+    ]);
+
+    await connection.commit();
+    res.json({ success: true, message: "Record updated successfully", docNo: updatedDocNo });
   } catch (err) {
+    await connection.rollback();
     console.error("❌ UPDATE Billing Error:", err.message);
     res.status(500).json({ error: err.message });
+  } finally {
+    connection.release();
   }
 });
 
 /**
- * DELETE: Remove a billing record by ID
- * Note: Since 'services' are stored as JSON within this table, 
- * deleting the row automatically removes the associated services.
+ * DELETE: Remove a billing record
  */
 router.delete('/:id', async (req, res) => {
   const { id } = req.params;
@@ -103,11 +140,9 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ error: "Record not found" });
     }
 
-    console.log(`🗑️ Deleted Billing Record ID: ${id}`);
     res.json({ success: true, message: "Record deleted successfully" });
   } catch (err) {
     console.error("❌ DELETE Billing Error:", err.message);
-    // Check for foreign key constraints if you have other tables linked
     res.status(500).json({ error: err.message });
   }
 });

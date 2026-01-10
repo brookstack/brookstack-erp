@@ -123,17 +123,20 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
       {activeStep === 0 && (
         <Grid container spacing={2}>
           <Grid size={{ xs: 6 }}>
-            <TextField {...getFProps(isEditMode)} select label="Document Type" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
+            {/* Editable in both modes */}
+            <TextField {...getFProps(false)} select label="Document Type" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
                 <MenuItem value="invoice">Invoice</MenuItem>
                 <MenuItem value="quotation">Quotation</MenuItem>
             </TextField>
           </Grid>
           <Grid size={{ xs: 6 }}>
-            <TextField {...getFProps(isEditMode)} select label="Currency" value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })}>
+            {/* Editable in both modes */}
+            <TextField {...getFProps(false)} select label="Currency" value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })}>
                 {['KES', 'USD', 'EUR'].map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
             </TextField>
           </Grid>
           <Grid size={{ xs: 12 }}>
+            {/* Locked during edit mode */}
             <TextField {...getFProps(isEditMode)} select label="Select Client" value={form.clientId} onChange={e => setForm({ ...form, clientId: e.target.value })}>
                 {customers.map(c => <MenuItem key={c.id} value={c.id}>{c.companyName}</MenuItem>)}
             </TextField>
@@ -144,7 +147,7 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
                 {isEditMode ? <Lock sx={{ color: alpha(DARK_NAVY, 0.4) }} /> : <Business sx={{ color: RUST }} />}
                 <Box>
                   <Typography variant="caption" sx={{ fontWeight: 800, color: isEditMode ? alpha(DARK_NAVY, 0.5) : RUST, letterSpacing: 1 }}>
-                    {isEditMode ? 'CLIENT INFORMATION' : 'CLIENT DETAILS'}
+                    {isEditMode ? 'CLIENT INFORMATION (LOCKED)' : 'CLIENT DETAILS'}
                   </Typography>
                   <Typography variant="body2" sx={{ fontWeight: 700 }}>{selectedClient.companyName}</Typography>
                   <Typography variant="caption" sx={{ display: 'block', color: 'textSecondary' }}>{selectedClient.contactPerson} | {selectedClient.email}</Typography>

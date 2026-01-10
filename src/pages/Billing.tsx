@@ -129,7 +129,7 @@ export const BillingPage = () => {
                 </Typography>
                 <Stack direction="row" spacing={1}>
                   <Typography variant="caption" color="textSecondary" sx={{ fontSize: '0.65rem' }}>
-                      Sub: {Number(row.subtotal).toLocaleString()}
+                      Exclusive VAT: {Number(row.subtotal).toLocaleString()}
                   </Typography>
                 </Stack>
             </Box>
