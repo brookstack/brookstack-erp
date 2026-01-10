@@ -17,13 +17,9 @@ export default function DashboardPage() {
       >
         Admin Dashboard
       </Typography>
-      
-      {/* 1. Stats Cards Section (Total Users, etc.) */}
       <Box sx={{ mb: 4 }}>
         <StatsSection />
       </Box>
-      
-      {/* 2. Quick Actions Section (Manage Users, etc.) */}
       <Box>
         <QuickActions />
       </Box>

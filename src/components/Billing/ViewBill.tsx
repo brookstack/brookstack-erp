@@ -71,7 +71,7 @@ export const ViewInvoice: React.FC<InvoiceProps> = ({ data, onBack }) => {
                 px: { xs: 2, sm: 3 }
             }}
           >
-            {isMobile ? 'PDF' : 'Export Vector PDF'}
+            {isMobile ? 'PDF' : 'Export PDF'}
           </Button>
         </Stack>
       </Stack>
