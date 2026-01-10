@@ -22,6 +22,14 @@ interface Column {
     render?: (row: any) => React.ReactNode;
 }
 
+// Added a structured type for additional actions to handle dynamic labels/icons
+interface AdditionalAction {
+    label: string;
+    icon: React.ReactNode;
+    onClick: (row: any) => void;
+    color?: string;
+}
+
 interface DataTableProps {
     title?: string;
     columns: Column[];
@@ -30,10 +38,12 @@ interface DataTableProps {
     onEdit?: (id: string) => void;
     onDelete?: (id: string) => void;
     primaryAction?: { label: string; onClick: () => void };
+    // Updated to return the action configuration
+    additionalActions?: (row: any) => AdditionalAction | null;
 }
 
 export const DataTable: React.FC<DataTableProps> = ({
-    title, columns, data, onView, onEdit, onDelete, primaryAction
+    title, columns, data, onView, onEdit, onDelete, primaryAction, additionalActions
 }) => {
     const [page, setPage] = useState(1);
     const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -42,10 +52,8 @@ export const DataTable: React.FC<DataTableProps> = ({
     const theme = useTheme();
     const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
-    // Filter the data based on search term
     const filteredData = useMemo(() => {
         if (!searchTerm) return data;
-
         return data.filter((row) =>
             Object.values(row).some((value) =>
                 String(value).toLowerCase().includes(searchTerm.toLowerCase())
@@ -53,7 +61,6 @@ export const DataTable: React.FC<DataTableProps> = ({
         );
     }, [data, searchTerm]);
 
-    // Perform pagination on the FILTERED data
     const startIndex = (page - 1) * rowsPerPage;
     const paginatedData = filteredData.slice(startIndex, startIndex + rowsPerPage);
     const totalPages = Math.ceil(filteredData.length / rowsPerPage);
@@ -63,6 +70,40 @@ export const DataTable: React.FC<DataTableProps> = ({
         setPage(1);
     };
 
+    // Helper component to render the dynamic button consistently
+    // Inside DataTable.tsx
+    const RenderAdditionalAction = ({ row }: { row: any }) => {
+        const action = additionalActions?.(row);
+        if (!action) return null;
+
+        return (
+            <Button
+                size="small"
+                startIcon={isMobile ? action.icon : null}
+                onClick={() => action.onClick(row)}
+                sx={{
+                    color: action.color || '#198754',
+                    textTransform: 'none',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    minWidth: isMobile ? 'auto' : 0,
+                    p: isMobile ? '4px 8px' : '6px',
+                    '& svg': {
+                        fontSize: '1.15rem !important' // Adjust this value (e.g., 1rem, 1.2rem) to your liking
+                    },
+
+                    // Removes the gap created by startIcon when text is hidden on desktop
+                    '& .MuiButton-startIcon': {
+                        margin: isMobile ? '0 8px 0 0' : 0
+                    },
+
+                    '&:hover': { bgcolor: alpha(action.color || '#198754', 0.08) }
+                }}
+            >
+                {isMobile ? action.label : action.icon}
+            </Button>
+        );
+    };
     return (
         <Box sx={{ width: '100%', px: 0.5 }}>
             <Stack
@@ -75,7 +116,6 @@ export const DataTable: React.FC<DataTableProps> = ({
                 {title && <Typography variant="h5" sx={{ fontWeight: 800, color: '#232d42' }}>{title}</Typography>}
 
                 <Stack
-                    // Switches to vertical on mobile, horizontal on tablet+
                     direction={{ xs: 'column', sm: 'row' }}
                     spacing={2}
                     alignItems="center"
@@ -90,7 +130,6 @@ export const DataTable: React.FC<DataTableProps> = ({
                             startAdornment: (<InputAdornment position="start"><SearchIcon fontSize="small" /></InputAdornment>),
                             sx: { borderRadius: '8px', bgcolor: 'white', fontSize: '0.875rem' }
                         }}
-                        // Full width on mobile, fixed width on desktop
                         sx={{ width: { xs: '100%', sm: 220 } }}
                     />
 
@@ -103,12 +142,11 @@ export const DataTable: React.FC<DataTableProps> = ({
                                 borderRadius: '8px',
                                 textTransform: 'none',
                                 boxShadow: 'none',
-                                // Responsive font weight and width
                                 fontWeight: { xs: 300, sm: 600 },
                                 width: { xs: '100%', sm: 'auto' },
                                 bgcolor: RUST_COLOR,
                                 '&:hover': { bgcolor: RUST_HOVER },
-                                py: { xs: 1, sm: 0.8 } // Slightly taller button for easier tapping on mobile
+                                py: { xs: 1, sm: 0.8 }
                             }}
                         >
                             {primaryAction.label}
@@ -118,49 +156,17 @@ export const DataTable: React.FC<DataTableProps> = ({
             </Stack>
 
             {!isMobile ? (
-                <Paper
-                    elevation={0}
-                    sx={{
-                        width: '100%',
-                        border: '1px solid #f1f1f1',
-                        borderRadius: '12px',
-                        overflow: 'hidden'
-                    }}
-                >
+                <Paper elevation={0} sx={{ width: '100%', border: '1px solid #f1f1f1', borderRadius: '12px', overflow: 'hidden' }}>
                     <TableContainer sx={{ overflowX: 'auto' }}>
                         <Table stickyHeader sx={{ minWidth: 1000 }}>
                             <TableHead>
                                 <TableRow>
                                     {columns.map((col) => (
-                                        <TableCell
-                                            key={col.id}
-                                            sx={{
-                                                bgcolor: '#f8f9fa !important', // Grey background
-                                                color: '#1a202c',              // Black title
-                                                fontWeight: 800,
-                                                fontSize: '0.725rem',
-                                                borderBottom: '1px solid #edeff2',
-                                                textTransform: 'uppercase',
-                                                py: 2.2,
-                                                px: 3,
-                                                whiteSpace: 'nowrap',
-                                                letterSpacing: '0.02em'
-                                            }}
-                                        >
+                                        <TableCell key={col.id} sx={{ bgcolor: '#f8f9fa !important', color: '#1a202c', fontWeight: 800, fontSize: '0.725rem', borderBottom: '1px solid #edeff2', textTransform: 'uppercase', py: 2.2, px: 3, whiteSpace: 'nowrap', letterSpacing: '0.02em' }}>
                                             {col.label}
                                         </TableCell>
                                     ))}
-                                    <TableCell
-                                        align="right"
-                                        sx={{
-                                            bgcolor: '#f8f9fa !important', // Grey background
-                                            color: '#1a202c',              // Black title
-                                            fontWeight: 800,
-                                            fontSize: '0.725rem',
-                                            borderBottom: '1px solid #edeff2',
-                                            px: 3
-                                        }}
-                                    >
+                                    <TableCell align="right" sx={{ bgcolor: '#f8f9fa !important', color: '#1a202c', fontWeight: 800, fontSize: '0.725rem', borderBottom: '1px solid #edeff2', px: 3 }}>
                                         ACTIONS
                                     </TableCell>
                                 </TableRow>
@@ -175,7 +181,10 @@ export const DataTable: React.FC<DataTableProps> = ({
                                                 </TableCell>
                                             ))}
                                             <TableCell align="right" sx={{ borderBottom: '1px solid #f8f9fa', px: 3 }}>
-                                                <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                                                <Stack direction="row" spacing={0.5} justifyContent="flex-end" alignItems="center">
+                                                    {/* ✅ Dynamic Action Button */}
+                                                    <RenderAdditionalAction row={row} />
+
                                                     <IconButton size="small" onClick={() => onView?.(row.id)} sx={{ color: '#8a92a6' }}><ViewIcon sx={{ fontSize: '1.1rem' }} /></IconButton>
                                                     <IconButton size="small" onClick={() => onEdit?.(row.id)} sx={{ color: '#8a92a6' }}><EditIcon sx={{ fontSize: '1.1rem' }} /></IconButton>
                                                     <IconButton size="small" onClick={() => onDelete?.(row.id)} sx={{ color: '#8a92a6' }}><DeleteIcon sx={{ fontSize: '1.1rem' }} /></IconButton>
@@ -206,7 +215,10 @@ export const DataTable: React.FC<DataTableProps> = ({
                                     </Box>
                                 ))}
                                 <Divider sx={{ my: 1.5, borderStyle: 'dashed' }} />
-                                <Stack direction="row" justifyContent="flex-end" spacing={1}>
+                                <Stack direction="row" justifyContent="flex-end" spacing={1} alignItems="center">
+                                    {/* ✅ Dynamic Action Button for Mobile */}
+                                    <RenderAdditionalAction row={row} />
+
                                     <Button size="small" startIcon={<ViewIcon />} onClick={() => onView?.(row.id)} sx={{ color: '#8a92a6', textTransform: 'none', fontSize: '0.75rem' }}>View</Button>
                                     <Button size="small" startIcon={<EditIcon />} onClick={() => onEdit?.(row.id)} sx={{ color: '#232d42', textTransform: 'none', fontSize: '0.75rem' }}>Edit</Button>
                                     <Button size="small" startIcon={<DeleteIcon />} onClick={() => onDelete?.(row.id)} color="error" sx={{ textTransform: 'none', fontSize: '0.75rem' }}>Delete</Button>
@@ -219,51 +231,22 @@ export const DataTable: React.FC<DataTableProps> = ({
                 </Stack>
             )}
 
-            {/* Footer Section */}
-            <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                justifyContent="space-between"
-                alignItems="center"
-                sx={{ py: 3, px: 1 }}
-                spacing={2}
-            >
+            <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems="center" sx={{ py: 3, px: 1 }} spacing={2}>
                 <Typography variant="body2" sx={{ color: '#8a92a6', fontWeight: 500 }}>
                     Showing {filteredData.length > 0 ? startIndex + 1 : 0} to {Math.min(startIndex + rowsPerPage, filteredData.length)} of {filteredData.length} entries
                 </Typography>
-
                 <Stack direction="row" spacing={{ xs: 1, sm: 4 }} alignItems="center">
                     {!isMobile && (
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Typography variant="body2" sx={{ color: '#8a92a6' }}>Per page:</Typography>
-                            <Select
-                                size="small"
-                                value={rowsPerPage}
-                                onChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(1); }}
-                                sx={{ height: 32, borderRadius: '6px', minWidth: 70, fontSize: '0.85rem' }}
-                            >
+                            <Select size="small" value={rowsPerPage} onChange={(e) => { setRowsPerPage(Number(e.target.value)); setPage(1); }} sx={{ height: 32, borderRadius: '6px', minWidth: 70, fontSize: '0.85rem' }}>
                                 <MenuItem value={10}>10</MenuItem>
                                 <MenuItem value={25}>25</MenuItem>
                                 <MenuItem value={50}>50</MenuItem>
                             </Select>
                         </Box>
                     )}
-                    <Pagination
-                        count={totalPages}
-                        page={page}
-                        onChange={(_, val) => setPage(val)}
-                        variant="outlined"
-                        shape="rounded"
-                        size={isMobile ? "small" : "medium"}
-                        sx={{
-                            '& .MuiPaginationItem-root': { borderRadius: '6px', border: '1px solid #f1f1f1' },
-                            '& .Mui-selected': {
-                                bgcolor: `${RUST_COLOR} !important`,
-                                color: 'white',
-                                border: 'none',
-                                '&:hover': { bgcolor: `${RUST_HOVER} !important` }
-                            }
-                        }}
-                    />
+                    <Pagination count={totalPages} page={page} onChange={(_, val) => setPage(val)} variant="outlined" shape="rounded" size={isMobile ? "small" : "medium"} sx={{ '& .MuiPaginationItem-root': { borderRadius: '6px', border: '1px solid #f1f1f1' }, '& .Mui-selected': { bgcolor: `${RUST_COLOR} !important`, color: 'white', border: 'none', '&:hover': { bgcolor: `${RUST_HOVER} !important` } } }} />
                 </Stack>
             </Stack>
         </Box>
