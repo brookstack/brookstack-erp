@@ -2,11 +2,10 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Box, Chip, alpha, Dialog, DialogContent, IconButton,
   Typography, Stack, Snackbar, Alert, Button, CircularProgress,
-  DialogTitle, DialogActions, Tooltip
+  DialogTitle, DialogActions
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 // Components
 import { DataTable } from '../components/DataTable';
@@ -87,7 +86,7 @@ export const PaymentsPage = () => {
       label: 'INVOICE & CLIENT',
       render: (row: any) => (
         <Stack spacing={0}>
-          <Typography sx={{ fontSize: '0.85rem', color: DARK_NAVY }}>
+          <Typography sx={{ fontSize: '0.85rem', color: DARK_NAVY, fontWeight: 500 }}>
             {row.doc_no}
           </Typography>
           <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
@@ -97,14 +96,36 @@ export const PaymentsPage = () => {
       )
     },
     {
+      id: 'services',
+      label: 'SERVICES',
+      render: (row: any) => {
+        const masterBilling = billingRecords.find(b => b.id === row.billing_id);
+        const servicesRaw = row.billing_services_json || masterBilling?.services;
+        
+        let servicesList = [];
+        try {
+            servicesList = typeof servicesRaw === 'string' ? JSON.parse(servicesRaw) : (servicesRaw || []);
+        } catch (e) { servicesList = []; }
+
+        return (
+          <Box>
+            {servicesList.slice(0, 2).map((s: any, i: number) => (
+              <Typography key={i} sx={{ fontSize: '0.75rem', color: 'text.secondary', display: 'block' }}>
+                • {s.description || s.item_name}
+              </Typography>
+            ))}
+            {servicesList.length > 2 && <Typography sx={{ fontSize: '0.7rem', color: RUST }}>+ {servicesList.length - 2} more items</Typography>}
+          </Box>
+        );
+      }
+    },
+    {
       id: 'amount_paid',
       label: 'AMOUNT PAID',
       render: (row: any) => (
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Typography sx={{ fontSize: '0.9rem', color: SUCCESS_GREEN }}>
-            {row.currency} {Number(row.amount_paid).toLocaleString()}
-          </Typography>
-        </Stack>
+        <Typography sx={{ fontSize: '0.9rem', color: SUCCESS_GREEN, fontWeight: 600 }}>
+          {row.currency || 'KES'} {Number(row.amount_paid).toLocaleString()}
+        </Typography>
       )
     },
     {
@@ -112,7 +133,7 @@ export const PaymentsPage = () => {
       label: 'INVOICE STATUS',
       render: (row: any) => {
         const masterBilling = billingRecords.find(b => b.id === row.billing_id);
-        const status = (masterBilling?.status || row.status || 'unpaid').toLowerCase();
+        const status = (masterBilling?.status || row.billing_status || 'unpaid').toLowerCase();
         
         const config: any = {
             paid: { color: SUCCESS_GREEN, bg: alpha(SUCCESS_GREEN, 0.1) },
@@ -123,16 +144,7 @@ export const PaymentsPage = () => {
         const style = config[status] || config.unpaid;
 
         return (
-          <Chip
-            label={status.toUpperCase()}
-            size="small"
-            sx={{ 
-              fontSize: '0.65rem', 
-              bgcolor: style.bg, 
-              color: style.color,
-              borderRadius: '4px'
-            }}
-          />
+          <Chip label={status.toUpperCase()} size="small" sx={{ fontSize: '0.65rem', bgcolor: style.bg, color: style.color, borderRadius: '4px', fontWeight: 600 }} />
         );
       }
     }
@@ -164,7 +176,37 @@ export const PaymentsPage = () => {
           }}
           onView={(id) => {
             const record = paymentRecords.find(p => p.id === id);
-            if (record) { setSelectedPayment(record); setViewMode(true); }
+            if (record) {
+              const masterBilling = billingRecords.find(b => b.id === record.billing_id);
+              
+              // LOGIC: Calculate historical context for this specific receipt
+              // To show "Previous Payments", we look at the sum of all payments for this invoice
+              // made BEFORE this specific one.
+              const allPaymentsForThisInvoice = paymentRecords
+                .filter(p => p.billing_id === record.billing_id)
+                .sort((a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime());
+
+              const currentIndex = allPaymentsForThisInvoice.findIndex(p => p.id === record.id);
+              const paymentsBeforeThis = allPaymentsForThisInvoice.slice(0, currentIndex);
+              const sumPrevious = paymentsBeforeThis.reduce((sum, p) => sum + Number(p.amount_paid), 0);
+              
+              const grandTotal = Number(masterBilling?.grand_total || record.billing_grand_total || 0);
+              const paidNow = Number(record.amount_paid || 0);
+              const outstandingAfterThis = grandTotal - (sumPrevious + paidNow);
+
+              const enrichedData = {
+                ...record,
+                billing_services_json: masterBilling?.services || record.billing_services_json,
+                billing_grand_total: grandTotal,
+                // We pass this specifically so ViewPayment can show the state AT THAT TIME
+                billing_total_paid_before: sumPrevious,
+                billing_outstanding: outstandingAfterThis,
+                currency: masterBilling?.currency || record.currency || 'KES'
+              };
+
+              setSelectedPayment(enrichedData); 
+              setViewMode(true); 
+            }
           }}
           onEdit={(id) => {
             const record = paymentRecords.find(p => p.id === id);
@@ -177,15 +219,9 @@ export const PaymentsPage = () => {
         />
       )}
 
-      <Snackbar
-        open={snackbar.open}
-        autoHideDuration={4000}
-        onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-      >
-        <Alert severity={snackbar.severity} variant="filled" sx={{ borderRadius: '8px' }}>
-          {snackbar.message}
-        </Alert>
+      {/* Snackbar and Dialogs remain the same */}
+      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        <Alert severity={snackbar.severity} variant="filled" sx={{ borderRadius: '8px' }}>{snackbar.message}</Alert>
       </Snackbar>
 
       <Dialog open={deleteConfirm.open} onClose={() => setDeleteConfirm({ open: false, data: null })} maxWidth="xs" fullWidth>
@@ -203,33 +239,14 @@ export const PaymentsPage = () => {
         </DialogActions>
       </Dialog>
 
-      <Dialog 
-        open={paymentModalOpen} 
-        onClose={() => setPaymentModalOpen(false)} 
-        fullWidth 
-        maxWidth="md"
-        PaperProps={{ sx: { borderRadius: '16px' } }}
-      >
+      <Dialog open={paymentModalOpen} onClose={() => setPaymentModalOpen(false)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: '16px' } }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: alpha(DARK_NAVY, 0.02) }}>
-          <Typography variant="subtitle1" sx={{ color: DARK_NAVY }}>
-            {editData ? `Edit Payment Record: ${editData.doc_no}` : 'Record New Payment'}
-          </Typography>
+          <Typography variant="subtitle1" sx={{ color: DARK_NAVY }}>{editData ? `Edit Payment: ${editData.doc_no}` : 'Record New Payment'}</Typography>
           <IconButton size="small" onClick={() => setPaymentModalOpen(false)}><CloseIcon fontSize="small" /></IconButton>
         </Stack>
-        <DialogContent sx={{ p: 0 }}>
-            <Box sx={{ p: 3 }}>
-                <AddPaymentForm
-                    initialData={editData}
-                    availableInvoices={billingRecords} 
-                    onSuccess={() => {
-                        setPaymentModalOpen(false);
-                        setSnackbar({ open: true, message: 'Ledger updated successfully', severity: 'success' });
-                        fetchPaymentData();
-                    }}
-                    onError={(msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' })}
-                />
-            </Box>
-        </DialogContent>
+        <DialogContent sx={{ p: 0 }}><Box sx={{ p: 3 }}>
+          <AddPaymentForm initialData={editData} availableInvoices={billingRecords} onSuccess={() => { setPaymentModalOpen(false); fetchPaymentData(); }} onError={(msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' })} />
+        </Box></DialogContent>
       </Dialog>
     </Box>
   );

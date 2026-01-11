@@ -1,12 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Box, Chip, alpha, Dialog, DialogContent, IconButton,
+  Box, Chip, alpha, Dialog, DialogContent,
   Typography, Stack, Snackbar, Alert, Button, CircularProgress,
-  DialogTitle, DialogActions
+  DialogTitle, DialogActions, Tooltip
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import PaymentOutlinedIcon from '@mui/icons-material/PaymentOutlined';
+import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 
 // Components
 import { DataTable } from '../components/DataTable';
@@ -88,10 +87,10 @@ export const BillingPage = () => {
       label: 'DOCUMENT',
       render: (row: any) => (
         <Box>
-          <Typography sx={{ fontSize: '0.75rem', color: RUST }}>
+          <Typography sx={{ fontSize: '0.75rem', color: RUST, fontWeight: 700 }}>
             {row.doc_no || 'PENDING'}
           </Typography>
-          <Typography variant="caption" sx={{ fontSize: '0.65rem', color: 'textSecondary' }}>
+          <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600 }}>
             {row.type?.toUpperCase()}
           </Typography>
         </Box>
@@ -101,26 +100,68 @@ export const BillingPage = () => {
       id: 'client',
       label: 'CLIENT',
       render: (row: any) => (
-        <Typography sx={{ fontSize: '0.85rem', color: DARK_NAVY }}>
+        <Typography sx={{ fontSize: '0.85rem', color: DARK_NAVY, fontWeight: 500 }}>
           {row.clientName || '---'}
         </Typography>
       )
     },
     {
+  id: 'services',
+  label: 'SERVICE ITEMS',
+  render: (row: any) => {
+    // 1. Determine if the data is in row.items, row.services, or row.service_items
+    // 2. Parse it if it's currently a string
+    let items = [];
+    try {
+      const rawData = row.items || row.services || row.service_items || [];
+      items = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+    } catch (e) {
+      items = [];
+    }
+
+    if (!Array.isArray(items) || items.length === 0) {
+      return <Typography sx={{ fontSize: '0.8rem', color: 'text.disabled' }}>---</Typography>;
+    }
+
+    return (
+      <Stack spacing={0.5} sx={{ py: 1 }}>
+        {items.map((item: any, index: number) => (
+          <Typography 
+            key={index} 
+            sx={{ 
+              fontSize: '0.75rem', 
+              color: DARK_NAVY,
+              display: 'flex',
+              alignItems: 'center',
+              '&::before': {
+                content: '"•"',
+                marginRight: '8px',
+                color: alpha(RUST, 0.5)
+              }
+            }}
+          >
+            {item.description}
+          </Typography>
+        ))}
+      </Stack>
+    );
+  }
+},
+    {
       id: 'financials',
-      label: 'INVOICE TOTAL',
+      label: 'BILL TOTAL',
       render: (row: any) => (
-        <Typography sx={{ fontSize: '0.85rem' }}>
+        <Typography sx={{ fontSize: '0.85rem', fontWeight: 400 }}>
           {row.currency} {Number(row.grand_total).toLocaleString()}
         </Typography>
       )
     },
     {
       id: 'paid',
-      label: 'TOTAL PAID',
+      label: 'PAID',
       render: (row: any) => (
-        <Typography sx={{ fontSize: '0.85rem', color: SUCCESS_GREEN }}>
-          {row.currency} {Number(row.total_paid || 0).toLocaleString()}
+        <Typography sx={{ fontSize: '0.85rem', color: SUCCESS_GREEN, fontWeight: 400 }}>
+          {Number(row.total_paid || 0).toLocaleString()}
         </Typography>
       )
     },
@@ -130,7 +171,7 @@ export const BillingPage = () => {
       render: (row: any) => {
         const balance = Number(row.grand_total) - Number(row.total_paid || 0);
         return (
-          <Typography sx={{ fontSize: '0.85rem', color: balance > 0 ? RUST : SUCCESS_GREEN }}>
+          <Typography sx={{ fontSize: '0.85rem', color: balance > 0 ? RUST : SUCCESS_GREEN, fontWeight: 400 }}>
             {row.currency} {balance.toLocaleString()}
           </Typography>
         );
@@ -138,20 +179,20 @@ export const BillingPage = () => {
     },
     {
       id: 'status',
-      label: 'PAYMENT STATUS',
+      label: 'STATUS',
       render: (row: any) => {
         const totalPaid = Number(row.total_paid || 0);
         const grandTotal = Number(row.grand_total);
         
-        let label = 'PENDING';
-        let color = WARNING_ORANGE;
+        let label = 'UNPAID';
+        let color = RUST;
 
         if (totalPaid >= grandTotal && grandTotal > 0) {
           label = 'FULLY PAID';
           color = SUCCESS_GREEN;
         } else if (totalPaid > 0) {
           label = 'PARTIAL';
-          color = '#2980b9';
+          color = WARNING_ORANGE;
         }
 
         return (
@@ -162,7 +203,8 @@ export const BillingPage = () => {
                 bgcolor: alpha(color, 0.1), 
                 color: color, 
                 fontSize: '0.65rem',
-                borderRadius: '6px' 
+                fontWeight: 800,
+                borderRadius: '4px' 
             }}
           />
         );
@@ -175,13 +217,13 @@ export const BillingPage = () => {
       {loading ? (
         <Stack alignItems="center" py={10}>
           <CircularProgress size={30} sx={{ color: RUST }} />
-          <Typography sx={{ mt: 2, color: RUST }}>Syncing Ledger...</Typography>
+          <Typography sx={{ mt: 2, color: RUST, fontWeight: 600 }}>Syncing Ledger...</Typography>
         </Stack>
       ) : viewMode && selectedInvoice ? (
         <ViewInvoice data={selectedInvoice} onBack={() => { setViewMode(false); setSelectedInvoice(null); }} />
       ) : (
         <DataTable
-          title="Billing & Invoice"
+          title="Billing & Invoice Control"
           columns={columns}
           data={billingRecords}
           primaryAction={{
@@ -203,9 +245,8 @@ export const BillingPage = () => {
           additionalActions={(row: any) => {
             const isPaid = Number(row.total_paid || 0) >= Number(row.grand_total);
             return row.type === 'invoice' && !isPaid ? ({
-              label: 'Record Payment',  
-              icon: <PaymentOutlinedIcon sx={{ fontSize: '1.2rem' }} />,   
-              color: DARK_NAVY,
+              label: 'Pay',  
+              icon: <PaymentOutlinedIcon sx={{ fontSize: '1.1rem' }} />,   
               onClick: (row) => { setPaymentTarget(row); setPaymentModalOpen(true); }
             }) : null;
           }}
@@ -217,30 +258,33 @@ export const BillingPage = () => {
         open={snackbar.open}
         autoHideDuration={4000}
         onClose={() => setSnackbar({ ...snackbar, open: false })}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <Alert severity={snackbar.severity}>
+        <Alert severity={snackbar.severity} variant="filled" sx={{ width: '100%' }}>
           {snackbar.message}
         </Alert>
       </Snackbar>
 
       {/* --- DELETE DIALOG --- */}
-      <Dialog open={deleteConfirm.open} onClose={() => setDeleteConfirm({ open: false, data: null })}>
-        <DialogTitle>Confirm Deletion</DialogTitle>
+      <Dialog open={deleteConfirm.open} onClose={() => setDeleteConfirm({ open: false, data: null })} PaperProps={{ sx: { borderRadius: '12px' } }}>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <ReceiptLongIcon color="error" /> Confirm Deletion
+        </DialogTitle>
         <DialogContent>
           <Typography sx={{ fontSize: '0.9rem' }}>
-            Are you sure you want to remove {deleteConfirm.data?.doc_no}?
+            Are you sure you want to permanently remove document <strong>{deleteConfirm.data?.doc_no}</strong>? 
+            This action cannot be undone.
           </Typography>
         </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={() => setDeleteConfirm({ open: false, data: null })}>Cancel</Button>
-          <Button onClick={handleActualDelete} color="error" variant="contained">Delete</Button>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button onClick={() => setDeleteConfirm({ open: false, data: null })} color="inherit">Cancel</Button>
+          <Button onClick={handleActualDelete} color="error" variant="contained" sx={{ bgcolor: RUST }}>Delete Record</Button>
         </DialogActions>
       </Dialog>
 
       {/* --- FORM MODAL --- */}
-      <Dialog open={modalOpen} onClose={() => setModalOpen(false)} fullWidth maxWidth="md">
-        <DialogContent>
+      <Dialog open={modalOpen} onClose={() => setModalOpen(false)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: '16px' } }}>
+        <DialogContent sx={{ p: 4 }}>
           <AddBillingForm
             initialData={editData}
             customers={customers}
@@ -251,17 +295,17 @@ export const BillingPage = () => {
       </Dialog>
 
       {/* --- PAYMENT MODAL --- */}
-      <Dialog open={paymentModalOpen} onClose={() => setPaymentModalOpen(false)} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ borderBottom: '1px solid #eee' }}>
-          Receive Payment
+      <Dialog open={paymentModalOpen} onClose={() => setPaymentModalOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: '16px' } }}>
+        <DialogTitle sx={{ borderBottom: '1px solid #eee', fontWeight: 800 }}>
+          Record Payment Collection
         </DialogTitle>
-        <DialogContent sx={{ mt: 2 }}>
+        <DialogContent sx={{ p: 4 }}>
           {paymentTarget && (
             <AddPaymentForm
               billingRecord={paymentTarget}
               onSuccess={() => {
                 setPaymentModalOpen(false);
-                setSnackbar({ open: true, message: 'Payment Updated', severity: 'success' });
+                setSnackbar({ open: true, message: 'Payment recorded successfully', severity: 'success' });
                 fetchBillingData();
               }}
               onError={(msg) => setSnackbar({ open: true, message: msg, severity: 'error' })}

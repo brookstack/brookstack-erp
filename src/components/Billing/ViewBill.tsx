@@ -125,7 +125,7 @@ export const ViewInvoice: React.FC<InvoiceProps> = ({ data, onBack }) => {
                     </Typography>
                     <Typography variant="h6" sx={{ fontWeight: 800, color: DARK_NAVY, mb: 0.5 }}>{data.clientName || data.companyName}</Typography>
                     <Typography color="textSecondary" variant="body2">📧 {data.email || 'N/A'}</Typography>
-                    <Typography color="textSecondary" variant="body2">📞 {data.phone || 'N/A'}</Typography>
+                    <Typography color="textSecondary" variant="body2">📞 {data.clientPhone || 'N/A'}</Typography>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 5 }} sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
                     <Typography variant="caption" sx={{ fontWeight: 800, color: PRIMARY_RUST }}>DATE ISSUED</Typography>
