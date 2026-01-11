@@ -25,7 +25,6 @@ export const ViewPayment: React.FC<ReceiptProps> = ({ data, onBack }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
-  // Parse services JSON safely
   const services = useMemo(() => {
     try {
       const source = data.billing_services_json || data.services;
@@ -36,16 +35,23 @@ export const ViewPayment: React.FC<ReceiptProps> = ({ data, onBack }) => {
     }
   }, [data.billing_services_json, data.services]);
 
-  // Financial Logic: Based on your constant invoice amount requirement
   const financialMetrics = useMemo(() => {
     const totalInvoice = Number(data.billing_grand_total || data.grand_total) || 0;
     const paidNow = Number(data.amount_paid) || 0;
-    const currentBalance = Number(data.billing_outstanding) || 0;
     
-    // The balance before this specific payment was applied
-    const previousOutstanding = currentBalance + paidNow;
+    // running_total_paid includes paidNow.
+    const totalPaidUpToThisPoint = Number(data.running_total_paid) || paidNow;
+    
+    // Previous payments is the total paid up to now, minus the current transaction
+    const totalPreviousPayments = totalPaidUpToThisPoint - paidNow;
+    const outstandingBalanceAfterThis = totalInvoice - totalPaidUpToThisPoint;
 
-    return { totalInvoice, previousOutstanding, paidNow, currentBalance };
+    return { 
+      totalInvoice, 
+      totalPreviousPayments, 
+      paidNow, 
+      outstandingBalanceAfterThis 
+    };
   }, [data]);
 
   const handlePrint = useReactToPrint({
@@ -204,22 +210,22 @@ export const ViewPayment: React.FC<ReceiptProps> = ({ data, onBack }) => {
                             </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography sx={{ fontSize: '0.75rem', color: 'textSecondary' }}>PREVIOUS OUTSTANDING</Typography>
+                            <Typography sx={{ fontSize: '0.75rem', color: 'textSecondary' }}>PREVIOUS PAYMENTS</Typography>
                             <Typography sx={{ fontSize: '0.75rem', color: DARK_NAVY }}>
-                                {data.currency || 'KES'} {financialMetrics.previousOutstanding.toLocaleString()}
+                                {data.currency || 'KES'} {financialMetrics.totalPreviousPayments.toLocaleString()}
                             </Typography>
                         </Box>
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                            <Typography sx={{ fontSize: '0.75rem', color: PRIMARY_RUST, fontWeight: 600 }}>PAID NOW</Typography>
+                            <Typography sx={{ fontSize: '0.75rem', color: PRIMARY_RUST, fontWeight: 600 }}>CURRENT PAYMENT</Typography>
                             <Typography sx={{ fontSize: '0.75rem', color: PRIMARY_RUST, fontWeight: 600 }}>
                                 {data.currency || 'KES'} {financialMetrics.paidNow.toLocaleString()}
                             </Typography>
                         </Box>
                         <Divider />
                         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <Typography sx={{ fontSize: '0.75rem', color: DARK_NAVY, fontWeight: 600 }}>CURRENT BALANCE</Typography>
+                            <Typography sx={{ fontSize: '0.75rem', color: DARK_NAVY, fontWeight: 600 }}>OUTSTANDING BALANCE</Typography>
                             <Typography sx={{ fontSize: '1.1rem', color: DARK_NAVY, fontWeight: 700 }}>
-                                {data.currency || 'KES'} {financialMetrics.currentBalance.toLocaleString()}
+                                {data.currency || 'KES'} {financialMetrics.outstandingBalanceAfterThis.toLocaleString()}
                             </Typography>
                         </Box>
                     </Stack>
