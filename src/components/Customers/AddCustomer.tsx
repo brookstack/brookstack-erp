@@ -12,7 +12,7 @@ const SUCCESS_GREEN = '#198754';
 
 interface FormProps {
   onSuccess: () => void;
-  initialData?: any; // To populate form when editing
+  initialData?: any; 
 }
 
 export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess, initialData }) => {
@@ -27,7 +27,6 @@ export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess, initialData })
     accountManager: '', status: 'lead', notes: ''
   });
 
-  // Effect to pre-fill data when initialData is provided (Edit Mode)
   useEffect(() => {
     if (initialData) {
       setFormData({
@@ -63,7 +62,8 @@ export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess, initialData })
         formData.contactPerson.trim() !== '' &&
         formData.mobile.trim() !== '' &&
         isValidEmail(formData.email) &&
-        formData.location !== ''
+        formData.location !== '' &&
+        formData.building.trim() !== '' // Added building to validation
       );
     }
     if (activeStep === 1) {
@@ -87,7 +87,6 @@ export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess, initialData })
     setLoading(true);
     setError(null);
 
-    // If initialData exists, use PUT for update, otherwise POST for create
     const url = initialData 
       ? `http://localhost:5000/api/customers/${initialData.id}` 
       : 'http://localhost:5000/api/customers';
@@ -124,7 +123,7 @@ export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess, initialData })
     size: 'small' as const,
     onChange: handleChange,
     slotProps: {
-      inputLabel: { sx: { fontSize: '0.85rem', fontWeight: 500 } },
+      inputLabel: { sx: { fontSize: '0.85rem' } },
       input: { sx: { fontSize: '0.85rem', borderRadius: '8px' } }
     }
   };
@@ -193,6 +192,16 @@ export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess, initialData })
                 <MenuItem value="Kenya" sx={{ fontSize: '0.85rem' }}>Kenya</MenuItem>
                 <MenuItem value="Diaspora" sx={{ fontSize: '0.85rem' }}>Diaspora</MenuItem>
               </TextField>
+            </Grid>
+            <Grid size={{ xs: 12, md: 6 }}><TextField {...fieldProps} name="city" label="City" value={formData.city} /></Grid>
+            <Grid size={{ xs: 12, md: 6 }}>
+              <TextField 
+                {...fieldProps} 
+                name="building" 
+                label="Building / Office" 
+                value={formData.building} 
+                placeholder="e.g. Westside Towers, 4th Floor"
+              />
             </Grid>
           </Grid>
         )}
