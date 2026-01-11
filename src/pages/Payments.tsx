@@ -187,10 +187,6 @@ export const PaymentsPage = () => {
           title="Payments"
           columns={columns}
           data={paymentRecords}
-          primaryAction={{
-            label: 'Record New Payment',
-            onClick: () => { setEditData(null); setPaymentModalOpen(true); }
-          }}
           onView={(id) => {
             const record = paymentRecords.find(p => p.id === id);
             if (record) {

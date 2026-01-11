@@ -296,7 +296,7 @@ export const BillingPage = () => {
 
       {/* --- PAYMENT MODAL --- */}
       <Dialog open={paymentModalOpen} onClose={() => setPaymentModalOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: '16px' } }}>
-        <DialogTitle sx={{ borderBottom: '1px solid #eee', fontWeight: 800 }}>
+        <DialogTitle sx={{ borderBottom: '1px solid #eee', fontWeight: 500 }}>
           Record Payment Collection
         </DialogTitle>
         <DialogContent sx={{ p: 4 }}>

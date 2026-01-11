@@ -111,7 +111,7 @@ export const AddPaymentForm: React.FC<AddPaymentFormProps> = ({
         <Box sx={{ 
           p: 2.5, bgcolor: alpha(DARK_NAVY, 0.02), borderRadius: '12px', border: '1px solid', borderColor: alpha(DARK_NAVY, 0.08)
         }}>
-          <Typography variant="caption" sx={{ fontWeight: 800, color: RUST, letterSpacing: 1, mb: 2, display: 'block' }}>
+          <Typography variant="caption" sx={{ fontWeight: 600, color: RUST, letterSpacing: 1, mb: 2, display: 'block' }}>
             {initialData ? 'EDITING TRANSACTION' : 'FINANCIAL SUMMARY'}
           </Typography>
 
@@ -226,7 +226,7 @@ export const AddPaymentForm: React.FC<AddPaymentFormProps> = ({
         disabled={loading || !form.billing_id}
         onClick={handleSubmit}
         startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <AccountBalanceWallet />}
-        sx={{ bgcolor: DARK_NAVY, borderRadius: '8px', py: 1.6, fontWeight: 700, textTransform: 'none', '&:hover': { bgcolor: '#000' } }}
+        sx={{ bgcolor: RUST, borderRadius: '8px', py: 1.6, fontWeight: 700, textTransform: 'none', '&:hover': { bgcolor: '#b52841' } }}
       >
         {loading ? 'Processing...' : initialData ? 'Update Record' : 'Post Payment'}
       </Button>
@@ -236,7 +236,7 @@ export const AddPaymentForm: React.FC<AddPaymentFormProps> = ({
 
 const MetaItem = ({ icon, label, value, highlight }: { icon?: React.ReactNode, label: string; value: string; highlight?: string }) => (
   <Box>
-    <Typography variant="caption" sx={{ color: '#777', fontWeight: 700, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 0.5 }}>
+    <Typography variant="caption" sx={{ color: '#777', fontWeight: 400, textTransform: 'uppercase', display: 'flex', alignItems: 'center', gap: 0.5 }}>
       {icon} {label}
     </Typography>
     <Typography variant="body2" sx={{ fontWeight: 800, color: highlight || DARK_NAVY, mt: 0.2 }}>
