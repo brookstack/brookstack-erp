@@ -10,14 +10,16 @@ export default function DashboardPage() {
         variant="h5" 
         sx={{ 
           fontWeight: 600, 
-          mb: 4, 
+          mt:2,
+          mb: 2, 
+          ml:1,
           color: '#232d42',
           letterSpacing: '-0.5px' 
         }}
       >
         Admin Dashboard
       </Typography>
-      <Box sx={{ mb: 4 }}>
+      <Box sx={{ mb: 4}}>
         <StatsSection />
       </Box>
       <Box>

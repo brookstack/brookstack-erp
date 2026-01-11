@@ -1,19 +1,26 @@
 import { useState, useEffect } from 'react';
-import { 
-    Box, Paper, TextField, Button, Typography, 
-    Alert, CircularProgress, Stack 
+import {
+    Box, TextField, Button, Typography,
+    Alert, CircularProgress, Stack, Checkbox, FormControlLabel,
+    InputAdornment, IconButton, Link
 } from '@mui/material';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
+import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import Visibility from '@mui/icons-material/Visibility';
 
+// Brand colors
 const PRIMARY_RUST = '#b52841';
 const DARK_NAVY = '#1a202c';
+const TEXT_GRAY = '#64748b';
 
 export const LoginPage = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // Clear session on component mount to prevent login loops
     useEffect(() => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -30,24 +37,15 @@ export const LoginPage = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
             });
-
             const data = await response.json();
-
-            // Check for success from your revised backend
             if (response.ok && data.success) {
-                console.log("Login successful, saving session...");
-                
-                // Store token and user info
                 localStorage.setItem('token', data.token);
                 localStorage.setItem('user', JSON.stringify(data.user));
-                
-                // Force a redirect to the home page
-                window.location.href = '/'; 
+                window.location.href = '/';
             } else {
                 setError(data.error || 'Invalid credentials');
             }
         } catch (err) {
-            console.error("Connection error:", err);
             setError('Could not connect to the Brookstack ERP Server');
         } finally {
             setLoading(false);
@@ -55,75 +53,179 @@ export const LoginPage = () => {
     };
 
     return (
-        <Box sx={{ 
-            height: '100vh', 
-            display: 'flex', 
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            bgcolor: '#f4f6f8' 
+        <Box sx={{
+            display: 'flex',
+            height: '100vh',
+            width: '100vw',
+            overflow: 'hidden',
+            bgcolor: '#fff'
         }}>
-            <Paper elevation={6} sx={{ p: 5, width: '100%', maxWidth: 420, borderRadius: 4 }}>
-                <Stack spacing={3}>
-                    <Box textAlign="center">
-                        <Typography variant="h4" sx={{ fontWeight: 900, color: DARK_NAVY, letterSpacing: -1 }}>
-                            BROOK<span style={{ color: PRIMARY_RUST }}>STACK</span>
-                        </Typography>
-                        <Typography variant="overline" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                            Technology Systems ERP
+
+            {/* LEFT SIDE: ADAPTIVE LOGIN FORM */}
+            <Box sx={{
+                // Takes 100% width on mobile, 50% on desktop (md+)
+                flex: { xs: '1 1 100%', md: '1 1 50%' },
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center',
+                // Responsive padding: less on mobile, more on desktop
+                px: { xs: 3, sm: 8, md: 10, lg: 12 },
+                bgcolor: '#fff',
+                zIndex: 2
+            }}>
+                <Stack spacing={4} sx={{ width: '100%', maxWidth: 460 }}>
+
+                    {/* Brand Branding Section */}
+                    <Box sx={{ textAlign: 'center' }}>
+                        <Box
+                            component="img"
+                            src="/logo.png"
+                            alt="Brookstack Logo"
+                            sx={{
+                                // Responsive logo size
+                                height: { xs: 120, md: 150 },
+                                width: 'auto',
+                                // objectFit: 'contain'
+                            }}
+                        />
+                        <Typography variant="body2" sx={{ color: TEXT_GRAY, fontWeight: 500}}>
+                            Sign in to continue to your dashboard
                         </Typography>
                     </Box>
 
-                    <Box>
-                        <Typography variant="h6" fontWeight={700} gutterBottom>Welcome Back</Typography>
-                        <Typography variant="body2" color="text.secondary">Enter your credentials to access the system</Typography>
-                    </Box>
+                    {error && <Alert severity="error" variant="filled" sx={{ borderRadius: '12px', fontWeight: 600 }}>{error}</Alert>}
 
-                    {error && <Alert severity="error" variant="filled">{error}</Alert>}
-
-                    <form onSubmit={handleLogin}>
+                    <Box component="form" onSubmit={handleLogin}>
+                        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: DARK_NAVY }}>
+                            Email Address
+                        </Typography>
                         <TextField
                             fullWidth
-                            label="Email Address"
-                            margin="normal"
+                            placeholder="Enter your corporate email"
                             required
-                            autoComplete="email"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
+                            sx={{ mb: 3 }}
+                            slotProps={{
+                                input: {
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <PersonOutlineIcon sx={{ color: PRIMARY_RUST }} />
+                                        </InputAdornment>
+                                    ),
+                                    sx: { borderRadius: '12px', height: '56px' }
+                                }
+                            }}
                         />
+
+                        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: DARK_NAVY }}>
+                            Password
+                        </Typography>
                         <TextField
                             fullWidth
-                            label="Password"
-                            type="password"
-                            margin="normal"
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="Enter your password"
                             required
-                            autoComplete="current-password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
+                            sx={{ mb: 2 }}
+                            slotProps={{
+                                input: {
+                                    startAdornment: (
+                                        <InputAdornment position="start">
+                                            <LockOutlinedIcon sx={{ color: PRIMARY_RUST }} />
+                                        </InputAdornment>
+                                    ),
+                                    endAdornment: (
+                                        <InputAdornment position="end">
+                                            <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                                                {showPassword ? <VisibilityOff sx={{ color: PRIMARY_RUST }} /> : <Visibility sx={{ color: PRIMARY_RUST }} />}
+                                            </IconButton>
+                                        </InputAdornment>
+                                    ),
+                                    sx: { borderRadius: '12px', height: '56px' }
+                                }
+                            }}
                         />
+
+                        <Box sx={{
+                            display: 'flex',
+                            flexDirection: { xs: 'column', sm: 'row' }, // Stack on very small screens
+                            justifyContent: 'space-between',
+                            alignItems: { xs: 'flex-start', sm: 'center' },
+                            mb: 4,
+                            gap: { xs: 1, sm: 0 }
+                        }}>
+                            <FormControlLabel
+                                control={<Checkbox size="small" sx={{ '&.Mui-checked': { color: DARK_NAVY } }} />}
+                                label={<Typography sx={{ fontSize: '0.85rem', fontWeight: 500 }}>Remember me</Typography>}
+                            />
+                            <Link href="#" sx={{ fontSize: '0.85rem', fontWeight: 700, color: PRIMARY_RUST, textDecoration: 'none' }}>
+                                Forgot password?
+                            </Link>
+                        </Box>
                         <Button
                             fullWidth
                             type="submit"
                             variant="contained"
                             disabled={loading}
-                            sx={{ 
-                                mt: 4, 
-                                py: 1.8, 
-                                bgcolor: DARK_NAVY, 
-                                fontSize: '1rem',
+                            sx={{
+                                py: 2,
+                                bgcolor: PRIMARY_RUST,
+                                borderRadius: '12px',
                                 textTransform: 'none',
-                                '&:hover': { bgcolor: '#000' },
-                                fontWeight: 700
+                                fontSize: '1rem',
+                                fontWeight: 700,
+                                boxShadow: '0 4px 14px 0 rgba(26, 32, 44, 0.39)',
+                                '&:hover': { bgcolor: '#b52841' }
                             }}
                         >
-                            {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign Into Dashboard'}
+                            {loading ? <CircularProgress size={24} color="inherit" /> : 'Sign into ERP'}
                         </Button>
-                    </form>
+                    </Box>
 
-                    <Typography variant="caption" color="text.secondary" textAlign="center">
-                        Authorized Personnel Only
+                    <Typography variant="body2" sx={{ textAlign: 'center', color: TEXT_GRAY }}>
+                        Having trouble? {' '}
+                        <Link
+                            href="https://www.brookstack.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{
+                                color: PRIMARY_RUST,
+                                fontWeight: 700,
+                                textDecoration: 'none',
+                                '&:hover': { textDecoration: 'underline' } // Optional: adds a nice hover effect
+                            }}
+                        >
+                            Contact IT Support
+                        </Link>
                     </Typography>
                 </Stack>
-            </Paper>
+            </Box>
+
+            {/* RIGHT SIDE: EQUAL BRAND IMAGE (Hidden on Mobile) */}
+            <Box sx={{
+                flex: { md: '1 1 50%' }, // Takes 50% on desktop
+                display: { xs: 'none', md: 'block' }, // Hides on mobile/tablet
+                position: 'relative',
+                overflow: 'hidden'
+            }}>
+                <Box
+                    component="img"
+                    src="/login.jpg"
+                    sx={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover',
+                    }}
+                />
+                <Box sx={{
+                    position: 'absolute',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    bgcolor: 'rgba(26, 32, 44, 0.15)',
+                }} />
+            </Box>
         </Box>
     );
 };
