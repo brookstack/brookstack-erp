@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import {
     Box,
     Drawer,
@@ -16,12 +16,16 @@ import {
     useMediaQuery,
     alpha,
     Divider,
+    Menu,
+    MenuItem,
+    ListItemIcon as MenuIconIcon,
 } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
+import LogoutIcon from '@mui/icons-material/Logout';
+import PersonOutlineIcon from '@mui/icons-material/PersonOutline';
 import { navConfig } from './NavConfig';
 
 const drawerWidth = 260;
-
 
 interface Props {
     children: React.ReactNode;
@@ -29,12 +33,42 @@ interface Props {
 
 export const DashboardLayout: React.FC<Props> = ({ children }) => {
     const [mobileOpen, setMobileOpen] = useState(false);
+    const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+    const [user, setUser] = useState<{ name: string; role: string } | null>(null);
+    
     const theme = useTheme();
-    const location = useLocation(); // Tracks the current active URL
+    const location = useLocation();
+    const navigate = useNavigate();
     const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
 
-    const handleDrawerToggle = () => {
-        setMobileOpen(!mobileOpen);
+    // Load user data from localStorage on mount
+    useEffect(() => {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+            setUser(JSON.parse(storedUser));
+        }
+    }, []);
+
+    const handleDrawerToggle = () => setMobileOpen(!mobileOpen);
+
+    // Profile Menu Handlers
+    const handleProfileClick = (event: React.MouseEvent<HTMLElement>) => {
+        setAnchorEl(event.currentTarget);
+    };
+
+    const handleProfileClose = () => {
+        setAnchorEl(null);
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        navigate('/login');
+    };
+
+    const handleViewProfile = () => {
+        handleProfileClose();
+        navigate('/staff'); // Or your dedicated profile path
     };
 
     const drawerContent = (
@@ -49,7 +83,7 @@ export const DashboardLayout: React.FC<Props> = ({ children }) => {
                         height: "100%",
                         borderRadius: 1.5,
                         display: 'flex',
-                        objectFit: 'contain' // Ensures the logo isn't stretched
+                        objectFit: 'contain'
                     }}
                 />
             </Box>
@@ -58,35 +92,30 @@ export const DashboardLayout: React.FC<Props> = ({ children }) => {
 
             <List sx={{ px: 2, py: 3 }}>
                 {navConfig.map((item) => {
-                    const isActive = location.pathname === item.path; // Checks if item is active
-
+                    const isActive = location.pathname === item.path;
                     return (
                         <ListItemButton
                             key={item.title}
-                            component={NavLink} // Transforms button into a link
-                            to={item.path}      // Sets the destination
+                            component={NavLink}
+                            to={item.path}
                             sx={{
                                 borderRadius: 2,
                                 mb: 0.5,
                                 py: 1.2,
                                 color: isActive ? 'primary.main' : 'text.secondary',
                                 bgcolor: isActive ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
-                                '&.active': { // React Router adds this class automatically
+                                '&.active': {
                                     bgcolor: alpha(theme.palette.primary.main, 0.1),
                                     color: 'primary.main',
-                                    '& .MuiListItemIcon-root': { color: 'primary.main' },
                                 },
                                 '&:hover': {
                                     bgcolor: alpha(theme.palette.primary.main, 0.05),
                                     color: 'primary.main',
-                                    '& .MuiListItemIcon-root': { color: 'primary.main' },
                                 },
                             }}
                         >
                             <ListItemIcon sx={{ minWidth: 38, color: isActive ? 'primary.main' : 'inherit' }}>
-                                <Box sx={{ display: 'flex', color: 'inherit' }}>
-                                    {item.icon}
-                                </Box>
+                                {item.icon}
                             </ListItemIcon>
                             <ListItemText
                                 primary={item.title}
@@ -148,17 +177,30 @@ export const DashboardLayout: React.FC<Props> = ({ children }) => {
                             )}
                         </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        {/* Interactive Profile Section */}
+                        <Box 
+                            onClick={handleProfileClick}
+                            sx={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: 2, 
+                                cursor: 'pointer',
+                                p: 0.5,
+                                borderRadius: 2,
+                                transition: '0.2s',
+                                '&:hover': { bgcolor: alpha(theme.palette.primary.main, 0.05) }
+                            }}
+                        >
                             <Box sx={{ textAlign: 'right', display: { xs: 'none', sm: 'block' } }}>
                                 <Typography variant="body2" sx={{ fontWeight: 700, lineHeight: 1 }}>
-                                    Dennis Obota
+                                    {user?.name || 'Dennis Obota'}
                                 </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                    Administrator
+                                <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+                                    {user?.role || 'Administrator'}
                                 </Typography>
                             </Box>
                             <Avatar
-                                src="https://api.dicebear.com/7.x/avataaars/svg?seed=Dennis"
+                                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.name || 'Dennis'}`}
                                 sx={{
                                     width: 40,
                                     height: 40,
@@ -167,6 +209,46 @@ export const DashboardLayout: React.FC<Props> = ({ children }) => {
                                 }}
                             />
                         </Box>
+
+                        {/* Profile Dropdown Menu */}
+                        <Menu
+                            anchorEl={anchorEl}
+                            open={Boolean(anchorEl)}
+                            onClose={handleProfileClose}
+                            PaperProps={{
+                                elevation: 4,
+                                sx: {
+                                    mt: 1.5,
+                                    minWidth: 180,
+                                    borderRadius: 3,
+                                    border: '1px solid #f3f4f6',
+                                    '& .MuiMenuItem-root': {
+                                        fontSize: '0.875rem',
+                                        fontWeight: 600,
+                                        py: 1,
+                                        borderRadius: 1.5,
+                                        mx: 0.8,
+                                        my: 0.5
+                                    },
+                                },
+                            }}
+                            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                        >
+                            <MenuItem onClick={handleViewProfile}>
+                                <MenuIconIcon sx={{ minWidth: '30px !important' }}>
+                                    <PersonOutlineIcon fontSize="small" />
+                                </MenuIconIcon>
+                                My Profile
+                            </MenuItem>
+                            <Divider sx={{ my: '0.5rem !important', opacity: 0.6 }} />
+                            <MenuItem onClick={handleLogout} sx={{ color: '#d32f2f' }}>
+                                <MenuIconIcon sx={{ minWidth: '30px !important', color: 'inherit' }}>
+                                    <LogoutIcon fontSize="small" />
+                                </MenuIconIcon>
+                                Logout
+                            </MenuItem>
+                        </Menu>
                     </Toolbar>
                 </AppBar>
 

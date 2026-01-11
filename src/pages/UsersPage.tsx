@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import {
     Box, Chip, alpha, Dialog, DialogContent, IconButton,
     Typography, Stack, CircularProgress, Snackbar, Alert, Button,
@@ -6,143 +6,160 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import { DataTable } from '../components/DataTable';
-import { AddCustomerForm } from '../components/Customers/AddCustomer';
-import { ViewCustomer } from '../components/Customers/ViewCustomer';
+import { DataTable } from '../components/DataTable'; // Using your generic table component
+import { AddStaffForm } from '../components/Users/AddUser';
 
 const PRIMARY_RUST = '#b52841';
 const DARK_NAVY = '#1a202c';
 const SANS_STACK = 'ui-sans-serif, system-ui, sans-serif';
 
-export const CustomersPage = () => {
-    const [customers, setCustomers] = useState<any[]>([]);
+interface User {
+    id: number;
+    full_name: string;
+    email: string;
+    role: string;
+    status: 'active' | 'inactive';
+    created_at?: string;
+}
+
+export const StaffPage = () => {
+    const [users, setUsers] = useState<User[]>([]);
     const [loading, setLoading] = useState(true);
     const [isDeleting, setIsDeleting] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
-
-    const [viewMode, setViewMode] = useState(false);
-    const [selectedCustomer, setSelectedCustomer] = useState<any | null>(null);
-    const [editData, setEditData] = useState<any | null>(null);
+    
+    // State for Edit/View flow
+    const [editData, setEditData] = useState<User | null>(null);
 
     const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
         open: false, message: '', severity: 'success'
     });
 
-    const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; data: any | null }>({
+    const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; data: User | null }>({
         open: false, data: null
     });
 
-    const fetchCustomers = useCallback(async () => {
+    const fetchStaff = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:5000/api/customers');
+            const response = await fetch('http://localhost:5000/api/users', {
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
             const data = await response.json();
-            setCustomers(data);
+            if (Array.isArray(data)) {
+                setUsers(data);
+            }
         } catch (error) {
             console.error("Fetch error:", error);
-            setSnackbar({ open: true, message: 'Failed to fetch clients', severity: 'error' });
+            setSnackbar({ open: true, message: 'Failed to fetch staff members', severity: 'error' });
         } finally {
             setLoading(false);
         }
     }, []);
 
-    useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
-
-    const handleView = (id: any) => {
-        const client = customers.find(c => c.id == id);
-        if (client) { setSelectedCustomer(client); setViewMode(true); }
-    };
+    useEffect(() => { fetchStaff(); }, [fetchStaff]);
 
     const handleEdit = (id: any) => {
-        const client = customers.find(c => c.id == id);
-        if (client) { setEditData(client); setModalOpen(true); }
+        const staff = users.find(u => u.id == id);
+        if (staff) { 
+            setEditData(staff); 
+            setModalOpen(true); 
+        }
     };
 
     const triggerDelete = (id: any) => {
-        const clientToDelete = customers.find(c => c.id == id);
-        setDeleteConfirm({ open: true, data: clientToDelete });
+        const staffToDelete = users.find(u => u.id == id);
+        if (staffToDelete) {
+            setDeleteConfirm({ open: true, data: staffToDelete });
+        }
     };
 
     const handleActualDelete = async () => {
         if (!deleteConfirm.data) return;
-        const { id, companyName } = deleteConfirm.data;
+        const { id, full_name } = deleteConfirm.data;
         
         setIsDeleting(true);
         try {
-            const response = await fetch(`http://localhost:5000/api/customers/${id}`, { method: 'DELETE' });
-            const result = await response.json();
+            const response = await fetch(`http://localhost:5000/api/users/${id}`, { 
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+            });
 
             if (response.ok) {
                 setDeleteConfirm({ open: false, data: null });
-                setSnackbar({ open: true, message: `Successfully removed "${companyName}"`, severity: 'success' });
-                fetchCustomers();
+                setSnackbar({ open: true, message: `Successfully removed ${full_name}`, severity: 'success' });
+                fetchStaff();
             } else {
-                // Shortened professional message for foreign key constraints
-                const errorDetail = result.details?.includes('foreign key constraint fails') 
-                    ? "Cannot delete client: Existing billing records are linked to this account."
-                    : (result.details || result.error || 'Delete failed');
-
-                setSnackbar({ 
-                    open: true, 
-                    message: errorDetail, 
-                    severity: 'error' 
-                });
-                setDeleteConfirm({ open: false, data: null });
+                setSnackbar({ open: true, message: 'Could not delete staff member', severity: 'error' });
             }
         } catch (error) {
             setSnackbar({ open: true, message: 'Connection error', severity: 'error' });
-            setDeleteConfirm({ open: false, data: null });
         } finally {
             setIsDeleting(false);
         }
     };
 
     const columns = [
-        { id: 'id', label: 'CLIENT ID' },
-        { id: 'companyName', label: 'COMPANY NAME' },
-        { id: 'clientType', label: 'CLIENT TYPE' },
-        { id: 'serviceCategory', label: 'SERVICE CATEGORY' },
-        { id: 'accountManager', label: 'ACC. MANAGER' },
+        { id: 'id', label: 'ID' },
+        { id: 'full_name', label: 'FULL NAME' },
+        { id: 'email', label: 'EMAIL ADDRESS' },
+        { 
+            id: 'role', 
+            label: 'SYSTEM ROLE',
+            render: (row: User) => (
+                <Chip 
+                    label={row.role?.toUpperCase()} 
+                    size="small" 
+                    sx={{ 
+                        fontWeight: 800, 
+                        fontSize: '0.65rem', 
+                        bgcolor: alpha(DARK_NAVY, 0.05), 
+                        color: DARK_NAVY 
+                    }} 
+                />
+            )
+        },
         {
             id: 'status',
             label: 'STATUS',
-            render: (row: any) => {
-                const statusConfig: any = {
-                    active: { color: '#2ecc71', bg: alpha('#2ecc71', 0.1) },
-                    lead: { color: '#f1c40f', bg: alpha('#f1c40f', 0.1) },
-                    inactive: { color: '#e74c3c', bg: alpha('#e74c3c', 0.1) },
-                };
-                const config = statusConfig[row.status?.toLowerCase()] || { color: '#8a92a6', bg: '#f1f1f1' };
-                return <Chip label={row.status?.toUpperCase()} size="small" sx={{ fontWeight: 800, fontSize: '0.65rem', backgroundColor: config.bg, color: config.color }} />;
+            render: (row: User) => {
+                const isActive = row.status?.toLowerCase() === 'active';
+                return (
+                    <Chip 
+                        label={row.status?.toUpperCase()} 
+                        size="small" 
+                        sx={{ 
+                            fontWeight: 800, 
+                            fontSize: '0.65rem', 
+                            backgroundColor: isActive ? alpha('#2ecc71', 0.1) : alpha('#e74c3c', 0.1), 
+                            color: isActive ? '#2ecc71' : '#e74c3c' 
+                        }} 
+                    />
+                );
             }
-        },
-        { id: 'created_at', label: 'CREATED', render: (row: any) => new Date(row.created_at).toLocaleDateString('en-GB') },
+        }
     ];
 
     return (
-        <Box sx={{ width: '100%', p: viewMode ? 0 : 3 }}>
+        <Box sx={{ width: '100%', p: 3 }}>
             {loading ? (
                 <Stack alignItems="center" py={10}><CircularProgress sx={{ color: PRIMARY_RUST }} /></Stack>
-            ) : viewMode && selectedCustomer ? (
-                <ViewCustomer
-                    customer={selectedCustomer}
-                    onBack={() => { setViewMode(false); setSelectedCustomer(null); }}
-                />
             ) : (
                 <DataTable
-                    title="Clients"
+                    title="Staff Management"
                     columns={columns}
-                    data={customers}
+                    data={users}
                     primaryAction={{
-                        label: 'Add Client',
+                        label: 'Add Staff Member',
                         onClick: () => { setEditData(null); setModalOpen(true); }
                     }}
-                    onView={handleView}
                     onEdit={handleEdit}
                     onDelete={triggerDelete}
+                    // Pass empty onView if you don't have a separate View component yet
                 />
             )}
 
+            {/* Delete Confirmation Dialog */}
             <Dialog
                 open={deleteConfirm.open}
                 onClose={() => !isDeleting && setDeleteConfirm({ open: false, data: null })}
@@ -150,12 +167,12 @@ export const CustomersPage = () => {
                 fullWidth
             >
                 <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#d32f2f', fontWeight: 800, fontFamily: SANS_STACK }}>
-                    <WarningAmberIcon color="error" /> Confirm Deletion
+                    <WarningAmberIcon color="error" /> Delete Staff Account
                 </DialogTitle>
                 <DialogContent>
                     <Typography sx={{ fontSize: '0.9rem', color: '#4b5563' }}>
-                        Are you sure you want to delete <strong>{deleteConfirm.data?.companyName}</strong>? 
-                        The system will verify dependencies before removal.
+                        Are you sure you want to remove <strong>{deleteConfirm.data?.full_name}</strong>? 
+                        This user will lose all access to Brookstack ERP immediately.
                     </Typography>
                 </DialogContent>
                 <DialogActions sx={{ p: 2, pt: 0 }}>
@@ -173,11 +190,12 @@ export const CustomersPage = () => {
                         variant="contained" 
                         sx={{ bgcolor: '#d32f2f', '&:hover': { bgcolor: '#b71c1c' }, fontWeight: 700 }}
                     >
-                        {isDeleting ? <CircularProgress size={20} color="inherit" /> : 'Delete'}
+                        {isDeleting ? <CircularProgress size={20} color="inherit" /> : 'Confirm Delete'}
                     </Button>
                 </DialogActions>
             </Dialog>
 
+            {/* Feedback Snackbar */}
             <Snackbar 
                 open={snackbar.open} 
                 autoHideDuration={6000} 
@@ -194,28 +212,29 @@ export const CustomersPage = () => {
                 </Alert>
             </Snackbar>
 
+            {/* Add/Edit Modal */}
             <Dialog
                 open={modalOpen}
                 onClose={() => { setModalOpen(false); setEditData(null); }}
                 fullWidth
-                maxWidth="md"
+                maxWidth="sm"
             >
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid #eee' }}>
                     <Typography variant="h6" sx={{ fontWeight: 800, color: DARK_NAVY, fontFamily: SANS_STACK }}>
-                        {editData ? `Edit Client: ${editData.companyName}` : 'Onboard New Client'}
+                        {editData ? `Update Profile: ${editData.full_name}` : 'Onboard New Staff'}
                     </Typography>
                     <IconButton onClick={() => { setModalOpen(false); setEditData(null); }}><CloseIcon /></IconButton>
                 </Stack>
                 <DialogContent sx={{ py: 4 }}>
-                    <AddCustomerForm
+                    <AddStaffForm
                         initialData={editData}
                         onSuccess={() => {
                             setModalOpen(false);
                             setEditData(null);
-                            fetchCustomers();
+                            fetchStaff();
                             setSnackbar({
                                 open: true,
-                                message: editData ? 'Client updated' : 'Client onboarded',
+                                message: editData ? 'Account updated' : 'Staff account created',
                                 severity: 'success'
                             });
                         }}
