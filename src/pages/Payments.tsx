@@ -110,7 +110,7 @@ export const PaymentsPage = () => {
         return (
           <Box>
             {servicesList.slice(0, 2).map((s: any, i: number) => (
-              <Typography key={i} variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+              <Typography key={i} variant="caption" sx={{ display: 'block' }}>
                 • {s.description || s.item_name}
               </Typography>
             ))}
@@ -127,7 +127,7 @@ export const PaymentsPage = () => {
       id: 'amount_paid',
       label: 'AMOUNT PAID',
       render: (row: any) => (
-        <Typography variant="body2" sx={{  fontWeight: 400 }}>
+        <Typography variant="body2" sx={{ color: SUCCESS_GREEN, fontWeight: 400 }}>
           {row.currency || 'KES'} {Number(row.amount_paid).toLocaleString()}
         </Typography>
       )

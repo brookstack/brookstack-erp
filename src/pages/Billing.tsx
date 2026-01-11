@@ -223,7 +223,7 @@ export const BillingPage = () => {
         <ViewInvoice data={selectedInvoice} onBack={() => { setViewMode(false); setSelectedInvoice(null); }} />
       ) : (
         <DataTable
-          title="Billing & Invoice Control"
+          title="Billing"
           columns={columns}
           data={billingRecords}
           primaryAction={{
