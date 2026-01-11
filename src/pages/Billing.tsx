@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import {
   Box, Chip, alpha, Dialog, DialogContent,
   Typography, Stack, Snackbar, Alert, Button, CircularProgress,
-  DialogTitle, DialogActions, Tooltip
+  DialogTitle, DialogActions
 } from '@mui/material';
 import PaymentOutlinedIcon from '@mui/icons-material/PaymentOutlined';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';

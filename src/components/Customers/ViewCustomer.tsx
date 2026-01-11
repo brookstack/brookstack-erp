@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import {
     Box, Typography, Stack, Chip, Tabs, Tab,
     Paper, alpha, Button, CircularProgress,
-    Dialog, DialogContent,  Grid, Snackbar, Alert,
+    Dialog, DialogContent, Grid, Snackbar, Alert,
     DialogTitle, DialogActions
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
@@ -59,6 +59,16 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
         severity: 'success' as 'success' | 'error'
     });
 
+    const parseServices = (source: any) => {
+        try {
+            if (!source) return [];
+            const parsed = typeof source === 'string' ? JSON.parse(source) : source;
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return [];
+        }
+    };
+
     const fetchClientData = useCallback(async () => {
         setLoading(true);
         try {
@@ -70,7 +80,6 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
             const billData = await billRes.json();
             const payData = await payRes.json();
 
-            // Filter data for this specific customer
             const filteredBills = billData.filter((b: any) => Number(b.client_id) === Number(customer.id));
             setBillingRecords(filteredBills);
 
@@ -122,8 +131,26 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
             )
         },
         {
+            id: 'services',
+            label: 'SERVICES/ITEMS',
+            render: (row: any) => {
+                const items = parseServices(row.services);
+                return (
+                    <Box sx={{ maxWidth: '180px' }}>
+                        {items.length > 0 ? (
+                            <Typography noWrap variant="caption" sx={{ display: 'block', color: 'text.secondary', fontWeight: 500 }}>
+                                {items.map((i: any) => i.description || i.item_name).join(', ')}
+                            </Typography>
+                        ) : (
+                            <Typography variant="caption" color="text.disabled">No items</Typography>
+                        )}
+                    </Box>
+                );
+            }
+        },
+        {
             id: 'grand_total',
-            label: 'BILL AMOUNT',
+            label: 'INVOICE TOTAL',
             render: (row: any) => (
                 <Typography sx={{ fontSize: '0.85rem', fontWeight: 500 }}>
                     {row.currency} {Number(row.grand_total).toLocaleString()}
@@ -134,7 +161,7 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
             id: 'total_paid',
             label: 'TOTAL PAID',
             render: (row: any) => (
-                <Typography sx={{ fontSize: '0.85rem', color: SUCCESS_COLOR, fontWeight: 600 }}>
+                <Typography sx={{ fontSize: '0.85rem', color: SUCCESS_COLOR, fontWeight: 500 }}>
                     {row.currency} {Number(row.total_paid || 0).toLocaleString()}
                 </Typography>
             )
@@ -145,11 +172,7 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
             render: (row: any) => {
                 const balance = Number(row.grand_total) - Number(row.total_paid || 0);
                 return (
-                    <Typography sx={{
-                        fontSize: '0.85rem',
-                        color: balance > 0 ? RUST_COLOR : SUCCESS_COLOR,
-                        fontWeight: 700
-                    }}>
+                    <Typography sx={{ fontSize: '0.85rem', color: balance > 0 ? RUST_COLOR : SUCCESS_COLOR, fontWeight: 700 }}>
                         {row.currency} {balance.toLocaleString()}
                     </Typography>
                 );
@@ -163,14 +186,7 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
                 const grandTotal = Number(row.grand_total);
                 let label = totalPaid >= grandTotal ? 'FULLY PAID' : totalPaid > 0 ? 'PARTIAL' : 'UNPAID';
                 let color = label === 'FULLY PAID' ? SUCCESS_COLOR : label === 'PARTIAL' ? WARNING_COLOR : RUST_COLOR;
-
-                return (
-                    <Chip
-                        label={label}
-                        size="small"
-                        sx={{ bgcolor: alpha(color, 0.1), color, fontSize: '0.6rem', fontWeight: 700, borderRadius: '4px' }}
-                    />
-                );
+                return <Chip label={label} size="small" sx={{ bgcolor: alpha(color, 0.1), color, fontSize: '0.6rem', fontWeight: 700, borderRadius: '4px' }} />;
             }
         }
     ];
@@ -178,8 +194,19 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
     const paymentColumns = [
         { id: 'date', label: 'DATE', render: (row: any) => <Typography sx={{ fontSize: '0.8rem' }}>{new Date(row.payment_date).toLocaleDateString('en-GB')}</Typography> },
         { id: 'invoice', label: 'INVOICE REF', render: (row: any) => <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }}>{row.doc_no}</Typography> },
+        {
+            id: 'services',
+            label: 'ITEMS PAID FOR',
+            render: (row: any) => {
+                const items = parseServices(row.billing_services_json || row.services);
+                return (
+                    <Typography noWrap variant="caption" sx={{ display: 'block', maxWidth: '150px', color: 'text.secondary' }}>
+                        {items.map((i: any) => i.description || i.item_name).join(', ') || 'General Payment'}
+                    </Typography>
+                );
+            }
+        },
         { id: 'method', label: 'METHOD', render: (row: any) => <Typography sx={{ fontSize: '0.75rem' }}>{row.payment_method}</Typography> },
-        { id: 'ref', label: 'REFERENCE', render: (row: any) => <Typography sx={{ fontSize: '0.75rem', fontFamily: 'monospace' }}>{row.transaction_reference || 'N/A'}</Typography> },
         { id: 'amount', label: 'AMOUNT', render: (row: any) => <Typography sx={{ fontSize: '0.85rem', color: SUCCESS_COLOR, fontWeight: 700 }}>{row.currency || 'KES'} {Number(row.amount_paid).toLocaleString()}</Typography> }
     ];
 
@@ -273,7 +300,6 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
                 </Box>
             )}
 
-            {/* Billing Modal */}
             <Dialog open={isInvoiceModalOpen} onClose={() => setIsInvoiceModalOpen(false)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: '16px' } }}>
                 <DialogContent sx={{ p: 4 }}>
                     <AddBillingForm
@@ -286,7 +312,6 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
                 </DialogContent>
             </Dialog>
 
-            {/* Payment Modal */}
             <Dialog open={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} fullWidth maxWidth="sm" PaperProps={{ sx: { borderRadius: '16px' } }}>
                 <DialogTitle sx={{ borderBottom: '1px solid #eee', fontWeight: 800 }}>
                     {editPaymentData ? 'Edit Payment Record' : 'Record Payment Collection'}
@@ -301,7 +326,6 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
                 </DialogContent>
             </Dialog>
 
-            {/* Delete Confirmation */}
             <Dialog open={deleteConfirm.open} onClose={() => setDeleteConfirm({ ...deleteConfirm, open: false })} PaperProps={{ sx: { borderRadius: '12px' } }}>
                 <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <ReceiptLongIcon color="error" /> Confirm Deletion
