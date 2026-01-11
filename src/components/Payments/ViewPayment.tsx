@@ -117,7 +117,7 @@ export const ViewPayment: React.FC<ReceiptProps> = ({ data, onBack }) => {
                 <Box sx={{ flexGrow: 1 }}>
                     <Grid container spacing={3} alignItems="center" sx={{ mb: 4 }}>
                         <Grid size={{ xs: 12, sm: 7 }}>
-                            <Box component="img" src="/logo.png" alt="Logo" sx={{ width: { xs: 180, sm: 220 }, height: 'auto' }} />
+                            <Box component="img" src="/logo.png" alt="Logo" sx={{ width: { xs: 250, sm: 300, md: 400 }, height: 'auto' }} />
                         </Grid>
                         <Grid size={{ xs: 12, sm: 5 }} sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
                             <Typography variant="h5" sx={{ color: PRIMARY_RUST, letterSpacing: '0.1em', mb: 0.5 }}>

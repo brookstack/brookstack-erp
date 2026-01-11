@@ -76,7 +76,7 @@ export const PaymentsPage = () => {
       id: 'payment_date',
       label: 'DATE',
       render: (row: any) => (
-        <Typography sx={{ fontSize: '0.8rem' }}>
+        <Typography variant="body2">
           {new Date(row.payment_date).toLocaleDateString('en-GB')}
         </Typography>
       )
@@ -86,10 +86,10 @@ export const PaymentsPage = () => {
       label: 'INVOICE & CLIENT',
       render: (row: any) => (
         <Stack spacing={0}>
-          <Typography sx={{ fontSize: '0.85rem', color: DARK_NAVY, fontWeight: 500 }}>
+          <Typography variant="subtitle2" sx={{ color: DARK_NAVY, fontWeight: 600 }}>
             {row.doc_no}
           </Typography>
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>
+          <Typography variant="caption" color="text.secondary">
             {row.clientName}
           </Typography>
         </Stack>
@@ -110,11 +110,15 @@ export const PaymentsPage = () => {
         return (
           <Box>
             {servicesList.slice(0, 2).map((s: any, i: number) => (
-              <Typography key={i} sx={{ fontSize: '0.75rem', color: 'text.secondary', display: 'block' }}>
+              <Typography key={i} variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
                 • {s.description || s.item_name}
               </Typography>
             ))}
-            {servicesList.length > 2 && <Typography sx={{ fontSize: '0.7rem', color: RUST }}>+ {servicesList.length - 2} more items</Typography>}
+            {servicesList.length > 2 && (
+              <Typography variant="caption" sx={{ color: RUST, fontWeight: 600 }}>
+                + {servicesList.length - 2} more items
+              </Typography>
+            )}
           </Box>
         );
       }
@@ -123,7 +127,7 @@ export const PaymentsPage = () => {
       id: 'amount_paid',
       label: 'AMOUNT PAID',
       render: (row: any) => (
-        <Typography sx={{ fontSize: '0.9rem', color: SUCCESS_GREEN, fontWeight: 600 }}>
+        <Typography variant="body2" sx={{  fontWeight: 400 }}>
           {row.currency || 'KES'} {Number(row.amount_paid).toLocaleString()}
         </Typography>
       )
@@ -144,7 +148,18 @@ export const PaymentsPage = () => {
         const style = config[status] || config.unpaid;
 
         return (
-          <Chip label={status.toUpperCase()} size="small" sx={{ fontSize: '0.65rem', bgcolor: style.bg, color: style.color, borderRadius: '4px', fontWeight: 600 }} />
+          <Chip 
+            label={status.toUpperCase()} 
+            size="small" 
+            sx={{ 
+              fontFamily: 'inherit', // Forces font inheritance from global theme
+              fontSize: '0.65rem', 
+              bgcolor: style.bg, 
+              color: style.color, 
+              borderRadius: '4px', 
+              fontWeight: 700 
+            }} 
+          />
         );
       }
     }
@@ -155,7 +170,9 @@ export const PaymentsPage = () => {
       {loading ? (
         <Stack alignItems="center" py={10}>
           <CircularProgress size={24} sx={{ color: RUST }} />
-          <Typography sx={{ mt: 2, color: RUST }}>Syncing Revenue Ledger...</Typography>
+          <Typography variant="body2" sx={{ mt: 2, color: RUST, fontWeight: 600 }}>
+            Syncing Revenue Ledger...
+          </Typography>
         </Stack>
       ) : viewMode && selectedPayment ? (
         <ViewPayment 
@@ -178,10 +195,6 @@ export const PaymentsPage = () => {
             const record = paymentRecords.find(p => p.id === id);
             if (record) {
               const masterBilling = billingRecords.find(b => b.id === record.billing_id);
-              
-              // LOGIC: Calculate historical context for this specific receipt
-              // To show "Previous Payments", we look at the sum of all payments for this invoice
-              // made BEFORE this specific one.
               const allPaymentsForThisInvoice = paymentRecords
                 .filter(p => p.billing_id === record.billing_id)
                 .sort((a, b) => new Date(a.payment_date).getTime() - new Date(b.payment_date).getTime());
@@ -198,7 +211,6 @@ export const PaymentsPage = () => {
                 ...record,
                 billing_services_json: masterBilling?.services || record.billing_services_json,
                 billing_grand_total: grandTotal,
-                // We pass this specifically so ViewPayment can show the state AT THAT TIME
                 billing_total_paid_before: sumPrevious,
                 billing_outstanding: outstandingAfterThis,
                 currency: masterBilling?.currency || record.currency || 'KES'
@@ -219,13 +231,13 @@ export const PaymentsPage = () => {
         />
       )}
 
-      {/* Snackbar and Dialogs remain the same */}
+      {/* Snackbar and Dialogs */}
       <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
-        <Alert severity={snackbar.severity} variant="filled" sx={{ borderRadius: '8px' }}>{snackbar.message}</Alert>
+        <Alert severity={snackbar.severity} variant="filled" sx={{ borderRadius: '8px', fontFamily: 'inherit' }}>{snackbar.message}</Alert>
       </Snackbar>
 
       <Dialog open={deleteConfirm.open} onClose={() => setDeleteConfirm({ open: false, data: null })} maxWidth="xs" fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: RUST }}>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, color: RUST, fontWeight: 700 }}>
           <WarningAmberIcon fontSize="small" /> Reverse Payment?
         </DialogTitle>
         <DialogContent>
@@ -234,19 +246,28 @@ export const PaymentsPage = () => {
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 2.5, pt: 0 }}>
-          <Button onClick={() => setDeleteConfirm({ open: false, data: null })} sx={{ color: 'text.secondary', textTransform: 'none' }}>Cancel</Button>
-          <Button onClick={handleActualDelete} variant="contained" sx={{ bgcolor: RUST, '&:hover': { bgcolor: '#8e2133' }, textTransform: 'none', boxShadow: 'none' }}>Confirm Reversal</Button>
+          <Button onClick={() => setDeleteConfirm({ open: false, data: null })} sx={{ color: 'text.secondary', textTransform: 'none', fontWeight: 600 }}>Cancel</Button>
+          <Button onClick={handleActualDelete} variant="contained" sx={{ bgcolor: RUST, '&:hover': { bgcolor: '#8e2133' }, textTransform: 'none', boxShadow: 'none', fontWeight: 600 }}>Confirm Reversal</Button>
         </DialogActions>
       </Dialog>
 
       <Dialog open={paymentModalOpen} onClose={() => setPaymentModalOpen(false)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: '16px' } }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: alpha(DARK_NAVY, 0.02) }}>
-          <Typography variant="subtitle1" sx={{ color: DARK_NAVY }}>{editData ? `Edit Payment: ${editData.doc_no}` : 'Record New Payment'}</Typography>
+          <Typography variant="subtitle2" sx={{ color: DARK_NAVY, fontWeight: 700 }}>
+            {editData ? `Edit Payment: ${editData.doc_no}` : 'Record New Payment'}
+          </Typography>
           <IconButton size="small" onClick={() => setPaymentModalOpen(false)}><CloseIcon fontSize="small" /></IconButton>
         </Stack>
-        <DialogContent sx={{ p: 0 }}><Box sx={{ p: 3 }}>
-          <AddPaymentForm initialData={editData} availableInvoices={billingRecords} onSuccess={() => { setPaymentModalOpen(false); fetchPaymentData(); }} onError={(msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' })} />
-        </Box></DialogContent>
+        <DialogContent sx={{ p: 0 }}>
+          <Box sx={{ p: 3 }}>
+            <AddPaymentForm 
+              initialData={editData} 
+              availableInvoices={billingRecords} 
+              onSuccess={() => { setPaymentModalOpen(false); fetchPaymentData(); }} 
+              onError={(msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' })} 
+            />
+          </Box>
+        </DialogContent>
       </Dialog>
     </Box>
   );
