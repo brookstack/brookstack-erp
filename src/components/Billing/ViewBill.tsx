@@ -111,7 +111,7 @@ export const ViewInvoice: React.FC<InvoiceProps> = ({ data, onBack }) => {
                     {/* <Typography variant={isMobile ? "h5" : "h4"} sx={{ fontWeight: 900, color: alpha(DARK_NAVY, 0.1), mb: 0.5 }}>
                      */}
                      <Typography variant="h5" sx={{ color: PRIMARY_RUST, letterSpacing: '0.1em', mb: 0.5 }}>
-                        {data.type?.toUpperCase()}
+                       OFFICIAL {data.type?.toUpperCase()}
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: 800, color: DARK_NAVY }}>{data.doc_no}</Typography>
                 </Grid>
