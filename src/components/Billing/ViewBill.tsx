@@ -179,7 +179,7 @@ export const ViewInvoice: React.FC<InvoiceProps> = ({ data, onBack }) => {
                     )}
                     <Typography variant="caption" sx={{ fontWeight: 800, color: PRIMARY_RUST }}>PAYMENT DETAILS</Typography>
                     <Typography variant="body2" sx={{ fontWeight: 700 }}>Kenya Commercial Bank (KCB) | Garden City</Typography>
-                    <Typography variant="body2" sx={{ color: '#444' }}>Acc: Brookstack Technologies | No: 1112405569</Typography>
+                    <Typography variant="body2" sx={{ color: '#444' }}>Acc: Brookstack Technologies Limited | No: 1348499796</Typography>
                 </Grid>
                 <Grid size={{ xs: 12, md: 5 }}>
                     <Stack spacing={1.5} sx={{ p: 2, bgcolor: alpha(DARK_NAVY, 0.02), borderRadius: '8px' }}>
