@@ -8,6 +8,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { DataTable } from '../components/DataTable'; // Using your generic table component
 import { AddStaffForm } from '../components/Users/AddUser';
+import { API_BASE_URL } from '../config/api';
 
 const PRIMARY_RUST = '#b52841';
 const DARK_NAVY = '#1a202c';
@@ -42,7 +43,7 @@ export const StaffPage = () => {
     const fetchStaff = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await fetch('http://localhost:5000/api/users', {
+            const response = await fetch(`${API_BASE_URL}/users`, {
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });
             const data = await response.json();
@@ -80,7 +81,7 @@ export const StaffPage = () => {
         
         setIsDeleting(true);
         try {
-            const response = await fetch(`http://localhost:5000/api/users/${id}`, { 
+            const response = await fetch(`${API_BASE_URL}/users/${id}`, { 
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
             });

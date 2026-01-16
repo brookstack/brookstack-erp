@@ -12,6 +12,7 @@ import { DataTable } from '../components/DataTable';
 import { AddBillingForm } from '../components/Billing/AddBilling';
 import { ViewInvoice } from '../components/Billing/ViewBill';
 import { AddPaymentForm } from '../components/Payments/PaymentsForm';
+import { API_BASE_URL } from '../config/api';
 
 const RUST = '#b52841';
 const DARK_NAVY = '#1a202c';
@@ -42,8 +43,8 @@ export const BillingPage = () => {
     setLoading(true);
     try {
       const [billingRes, customerRes] = await Promise.all([
-        fetch('http://localhost:5000/api/billing'),
-        fetch('http://localhost:5000/api/customers')
+        fetch(`${API_BASE_URL}/billing`),
+        fetch(`${API_BASE_URL}/customers`)
       ]);
 
       const billingData = await billingRes.json();
@@ -65,7 +66,7 @@ export const BillingPage = () => {
   const handleActualDelete = async () => {
     if (!deleteConfirm.data?.id) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/billing/${deleteConfirm.data.id}`, {
+      const response = await fetch(`${API_BASE_URL}api/billing/${deleteConfirm.data.id}`, {
         method: 'DELETE'
       });
       if (response.ok) {

@@ -5,10 +5,10 @@ import {
 } from '@mui/material';
 import { AccountBalanceWallet, Business, Call, Email } from '@mui/icons-material';
 import axios from 'axios';
+import { API_BASE_URL } from '../../config/api';
 
 const RUST = '#b52841';
 const DARK_NAVY = '#1a202c';
-const API_BASE_URL = 'http://localhost:5000/api';
 const SUCCESS = '#198754';
 
 interface AddPaymentFormProps {

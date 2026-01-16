@@ -7,6 +7,7 @@ import AssignmentIndIcon from '@mui/icons-material/AssignmentInd';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { API_BASE_URL } from '../../config/api';
 
 const SANS_STACK = 'ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"';
 const RUST = '#b52841';
@@ -21,7 +22,7 @@ export const StatsSection = () => {
   useEffect(() => {
     const fetchCustomerStats = async () => {
       try {
-        const response = await axios.get('http://localhost:5000/api/customers');
+        const response = await axios.get(`${API_BASE_URL}/customers`);
         const data = response.data;
         setCounts({
           total: data.length,

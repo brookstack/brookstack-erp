@@ -5,6 +5,7 @@ import {
   Typography
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { API_BASE_URL } from '../../config/api';
 
 const RUST_COLOR = '#b52841';
 const RUST_HOVER = '#a0360d';
@@ -62,8 +63,8 @@ export const AddStaffForm: React.FC<FormProps> = ({ onSuccess, initialData }) =>
     setError(null);
 
     const url = initialData 
-      ? `http://localhost:5000/api/users/${initialData.id}` 
-      : 'http://localhost:5000/api/users';
+      ? `${API_BASE_URL}/users/${initialData.id}` 
+      : `${API_BASE_URL}/users`;
     
     const method = initialData ? 'PUT' : 'POST';
 

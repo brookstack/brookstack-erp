@@ -11,6 +11,7 @@ import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { DataTable } from '../components/DataTable';
 import { AddPaymentForm } from '../components/Payments/PaymentsForm';
 import { ViewPayment } from '../components/Payments/ViewPayment';
+import { API_BASE_URL } from '../config/api';
 
 const RUST = '#b52841';
 const DARK_NAVY = '#1a202c';
@@ -38,8 +39,8 @@ export const PaymentsPage = () => {
     setLoading(true);
     try {
       const [paymentsRes, billingRes] = await Promise.all([
-        fetch('http://localhost:5000/api/payments'),
-        fetch('http://localhost:5000/api/billing') 
+        fetch(`${API_BASE_URL}/payments`),
+        fetch(`${API_BASE_URL}/billing`) 
       ]);
       const paymentsData = await paymentsRes.json();
       const billingData = await billingRes.json();
@@ -59,7 +60,7 @@ export const PaymentsPage = () => {
   const handleActualDelete = async () => {
     if (!deleteConfirm.data?.id) return;
     try {
-      const response = await fetch(`http://localhost:5000/api/payments/${deleteConfirm.data.id}`, {
+      const response = await fetch(`${API_BASE_URL}/api/payments/${deleteConfirm.data.id}`, {
         method: 'DELETE'
       });
       if (response.ok) {

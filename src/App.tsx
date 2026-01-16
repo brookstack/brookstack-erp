@@ -7,6 +7,7 @@ import { BillingPage } from './pages/Billing';
 import { PaymentsPage } from './pages/Payments';
 import { LoginPage } from './pages/LoginPage'; // Ensure you created this file
 import { StaffPage } from './pages/UsersPage';
+import { ProjectsPage } from './pages/Projects';
 
 // --- PROTECTED ROUTE COMPONENT ---
 // This checks for the token before allowing access to the ERP
@@ -38,6 +39,7 @@ function App() {
                 <Route path="/customers" element={<CustomersPage />} />
                 <Route path="/billing" element={<BillingPage />} />
                 <Route path="/payments" element={<PaymentsPage />} />
+                <Route path="/projects" element={<ProjectsPage />} />
                 <Route path="/staff" element={<StaffPage />} />
                 
                 {/* Catch-all for authenticated users: redirect back to dashboard if route doesn't exist */}
