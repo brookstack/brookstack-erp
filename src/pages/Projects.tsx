@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import {
     Box, Chip, alpha, Dialog, DialogContent, IconButton,
     Typography, Stack, CircularProgress, Snackbar, Alert, Button,
-    DialogTitle, Link
+    Link
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import LaunchIcon from '@mui/icons-material/Launch';
@@ -86,12 +86,35 @@ export const ProjectsPage = () => {
         },
         {
             id: 'project_url',
-            label: 'URL',
-            render: (row: any) => row.project_url ? (
-                <IconButton size="small" component={Link} href={row.project_url} target="_blank">
-                    <LaunchIcon sx={{ fontSize: '1rem', color: PRIMARY_RUST }} />
-                </IconButton>
-            ) : '-'
+            label: 'PROJECT URL',
+            render: (row: any) => {
+                if (!row.project_url) return <Typography variant="caption" sx={{ color: 'text.disabled' }}>-</Typography>;
+                
+                // Ensure the URL has a protocol to prevent internal routing
+                const href = row.project_url.startsWith('http') ? row.project_url : `https://${row.project_url}`;
+                
+                return (
+                    <Link 
+                        href={href} 
+                        target="_blank" 
+                        rel="noopener" 
+                        sx={{ 
+                            fontSize: '0.75rem', 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: 0.5, 
+                            color: PRIMARY_RUST, 
+                            textDecoration: 'none', 
+                            fontWeight: 600,
+                            '&:hover': { textDecoration: 'underline' }
+                        }}
+                    >
+                        {/* Shortens the link for display (removes https:// and long paths) */}
+                        {row.project_url.replace(/(^\w+:|^)\/\//, '').substring(0, 20)}{row.project_url.length > 20 ? '...' : ''}
+                        <LaunchIcon sx={{ fontSize: '0.85rem' }} />
+                    </Link>
+                );
+            }
         },
         { 
             id: 'created_at', 
@@ -125,7 +148,7 @@ export const ProjectsPage = () => {
                     }}
                     onView={(id) => {
                         const project = projects.find(p => p.id === id);
-                        // Future: setViewMode(true); setSelectedProject(project);
+                        // Navigation or View Dialog logic can be added here
                     }}
                     onEdit={(id) => {
                         const project = projects.find(p => p.id === id);
@@ -134,7 +157,12 @@ export const ProjectsPage = () => {
                 />
             )}
 
-            <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+            <Snackbar 
+                open={snackbar.open} 
+                autoHideDuration={4000} 
+                onClose={() => setSnackbar({ ...snackbar, open: false })} 
+                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
                 <Alert severity={snackbar.severity} variant="filled" sx={{ width: '100%', fontWeight: 600 }}>{snackbar.message}</Alert>
             </Snackbar>
 
