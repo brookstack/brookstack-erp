@@ -3,13 +3,12 @@ import {
     Box, Typography, Stack, Chip, Tabs, Tab, Link,
     Paper, alpha, Button, CircularProgress,
     Dialog, DialogContent, Grid, Snackbar, Alert,
-    DialogTitle, DialogActions, Tooltip, IconButton
+    DialogTitle, DialogActions, IconButton
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import ContactPageIcon from '@mui/icons-material/ContactPage';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
-import PaymentOutlinedIcon from '@mui/icons-material/PaymentOutlined';
 import CloseIcon from '@mui/icons-material/Close';
 import LaunchIcon from '@mui/icons-material/Launch';
 
@@ -21,6 +20,7 @@ import { AddPaymentForm } from '../Payments/PaymentsForm';
 import { AddProjectForm } from '../Projects/AddProject'; 
 import { DataTable } from '../DataTable';
 import { API_BASE_URL } from '../../config/api';
+import { ViewProject } from '../Projects/ViewProject';
 
 const RUST = '#b52841';
 const DARK_NAVY = '#1a202c';
@@ -42,11 +42,13 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
     // Modal States
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+    const [isViewProjectOpen, setIsViewProjectOpen] = useState(false); // New: View Toggle
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
     // Selection States
     const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
     const [selectedPayment, setSelectedPayment] = useState<any | null>(null);
+    const [selectedProject, setSelectedProject] = useState<any | null>(null); // New: Project Detail
     const [paymentTarget, setPaymentTarget] = useState<any | null>(null);
     const [editData, setEditData] = useState<any | null>(null);
 
@@ -54,7 +56,9 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
         open: false, type: 'billing', data: null
     });
 
-    const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
+    const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ 
+        open: false, message: '', severity: 'success' 
+    });
 
     const fetchClientData = useCallback(async () => {
         setLoading(true);
@@ -140,23 +144,12 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
                     href={row.project_url.startsWith('http') ? row.project_url : `https://${row.project_url}`} 
                     target="_blank" 
                     rel="noopener" 
-                    sx={{ 
-                        fontSize: '0.75rem', 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: 0.5, 
-                        color: RUST, 
-                        textDecoration: 'none', 
-                        fontWeight: 600,
-                        '&:hover': { textDecoration: 'underline' }
-                    }}
+                    sx={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 0.5, color: RUST, textDecoration: 'none', fontWeight: 600 }}
                 >
-                    {row.project_url.replace(/(^\w+:|^)\/\//, '').substring(0, 25)}{row.project_url.length > 25 ? '...' : ''}
+                    {row.project_url.replace(/(^\w+:|^)\/\//, '').substring(0, 20)}...
                     <LaunchIcon sx={{ fontSize: '0.85rem' }} />
                 </Link>
-            ) : (
-                <Typography variant="caption" sx={{ color: 'text.disabled' }}>No set yet</Typography>
-            )
+            ) : <Typography variant="caption" sx={{ color: 'text.disabled' }}>-</Typography>
         }
     ];
 
@@ -194,33 +187,21 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
                     {activeTab === 1 && (
                         selectedInvoice ? <ViewInvoice data={selectedInvoice} onBack={() => setSelectedInvoice(null)} /> :
                         <DataTable
-                            title="Billing History"
-                            columns={billingColumns}
-                            data={billingRecords}
+                            title="Billing History" columns={billingColumns} data={billingRecords}
                             primaryAction={{ label: 'New Invoice', onClick: () => { setEditData(null); setIsInvoiceModalOpen(true); } }}
-                            onView={(id: any) => setSelectedInvoice(billingRecords.find(r => r.id === id))}
-                            onEdit={(id: any) => { setEditData(billingRecords.find(r => r.id === id)); setIsInvoiceModalOpen(true); }}
-                            onDelete={(id: any) => setDeleteConfirm({ open: true, type: 'billing', data: billingRecords.find(r => r.id === id) })}
-                            additionalActions={(row: any) => {
-                                const isPaid = (Number(row.total_paid) || 0) >= (Number(row.grand_total) || 0);
-                                return row.type === 'invoice' && !isPaid ? ({
-                                    label: 'Pay',
-                                    icon: <PaymentOutlinedIcon sx={{ fontSize: '1.1rem' }} />,
-                                    onClick: (row) => { setPaymentTarget(row); setIsPaymentModalOpen(true); }
-                                }) : null;
-                            }}
+                            onView={(id) => setSelectedInvoice(billingRecords.find(r => r.id === id))}
+                            onEdit={(id) => { setEditData(billingRecords.find(r => r.id === id)); setIsInvoiceModalOpen(true); }}
+                            onDelete={(id) => setDeleteConfirm({ open: true, type: 'billing', data: billingRecords.find(r => r.id === id) })}
                         />
                     )}
 
                     {activeTab === 2 && (
-                        selectedPayment ? <ViewPayment data={selectedPayment} onBack={() => setSelectedPayment(null)} /> :
-                        <DataTable
-                            title="Payment Collection"
-                            columns={paymentColumns}
-                            data={paymentRecords}
-                            onView={(id: any) => setSelectedPayment(paymentRecords.find(p => p.id === id))}
-                            onDelete={(id: any) => setDeleteConfirm({ open: true, type: 'payments', data: paymentRecords.find(p => p.id === id) })}
-                        />
+                         selectedPayment ? <ViewPayment data={selectedPayment} onBack={() => setSelectedPayment(null)} /> :
+                         <DataTable
+                             title="Payment Collection" columns={paymentColumns} data={paymentRecords}
+                             onView={(id) => setSelectedPayment(paymentRecords.find(p => p.id === id))}
+                             onDelete={(id) => setDeleteConfirm({ open: true, type: 'payments', data: paymentRecords.find(p => p.id === id) })}
+                         />
                     )}
 
                     {activeTab === 3 && (
@@ -229,8 +210,15 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
                             columns={projectColumns}
                             data={projectRecords}
                             primaryAction={{ label: 'New Project', onClick: () => { setEditData(null); setIsProjectModalOpen(true); } }}
-                            onEdit={(id: any) => { setEditData(projectRecords.find(p => p.id === id)); setIsProjectModalOpen(true); }}
-                            onDelete={(id: any) => setDeleteConfirm({ open: true, type: 'projects', data: projectRecords.find(p => p.id === id) })}
+                            onView={(id) => {
+                                const project = projectRecords.find(p => p.id === id);
+                                if (project) {
+                                    setSelectedProject(project);
+                                    setIsViewProjectOpen(true);
+                                }
+                            }}
+                            onEdit={(id) => { setEditData(projectRecords.find(p => p.id === id)); setIsProjectModalOpen(true); }}
+                            onDelete={(id) => setDeleteConfirm({ open: true, type: 'projects', data: projectRecords.find(p => p.id === id) })}
                         />
                     )}
                 </Box>
@@ -238,6 +226,14 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
 
             {/* --- MODALS --- */}
             
+            {/* View Project Popup */}
+            <ViewProject 
+                open={isViewProjectOpen} 
+                onClose={() => setIsViewProjectOpen(false)} 
+                project={selectedProject} 
+            />
+
+            {/* Add/Edit Project Form */}
             <Dialog open={isProjectModalOpen} onClose={() => setIsProjectModalOpen(false)} fullWidth maxWidth="md">
                 <DialogContent sx={{ p: 4 }}>
                     <AddProjectForm 
@@ -251,7 +247,13 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
 
             <Dialog open={isInvoiceModalOpen} onClose={() => setIsInvoiceModalOpen(false)} fullWidth maxWidth="md">
                 <DialogContent sx={{ p: 4 }}>
-                    <AddBillingForm initialData={editData} selectedClient={customer} customers={[customer]} onSuccess={() => { setIsInvoiceModalOpen(false); fetchClientData(); }} onError={(msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' })} />
+                    <AddBillingForm 
+                        initialData={editData} 
+                        selectedClient={customer} 
+                        customers={[customer]} 
+                        onSuccess={() => { setIsInvoiceModalOpen(false); fetchClientData(); }} 
+                        onError={(msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' })} 
+                    />
                 </DialogContent>
             </Dialog>
 

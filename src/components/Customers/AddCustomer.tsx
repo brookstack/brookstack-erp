@@ -19,6 +19,7 @@ interface FormProps {
 export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess, initialData }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [users, setUsers] = useState<any[]>([]); // Added state for users
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
@@ -27,6 +28,22 @@ export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess, initialData })
     serviceCategory: '', engagementType: '', description: '',
     accountManager: '', status: 'lead', notes: ''
   });
+
+  // Fetch users for Account Manager selection
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/users`);
+        if (response.ok) {
+          const data = await response.json();
+          setUsers(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch users:", err);
+      }
+    };
+    fetchUsers();
+  }, []);
 
   useEffect(() => {
     if (initialData) {
@@ -64,7 +81,7 @@ export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess, initialData })
         formData.mobile.trim() !== '' &&
         isValidEmail(formData.email) &&
         formData.location !== '' &&
-        formData.building.trim() !== '' // Added building to validation
+        formData.building.trim() !== ''
       );
     }
     if (activeStep === 1) {
@@ -233,7 +250,14 @@ export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess, initialData })
           <Grid container spacing={2.5}>
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField {...fieldProps} select name="accountManager" label="Account Manager" value={formData.accountManager}>
-                <MenuItem value="Dennis Obota" sx={{ fontSize: '0.85rem' }}>Dennis Obota</MenuItem>
+                {users.map((user) => (
+                  <MenuItem key={user.id} value={user.full_name || user.username} sx={{ fontSize: '0.85rem' }}>
+                    {user.full_name || user.username}
+                  </MenuItem>
+                ))}
+                {users.length === 0 && (
+                  <MenuItem disabled sx={{ fontSize: '0.85rem' }}>No users found</MenuItem>
+                )}
               </TextField>
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>

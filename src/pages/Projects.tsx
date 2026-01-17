@@ -12,6 +12,7 @@ import LaunchIcon from '@mui/icons-material/Launch';
 import { DataTable } from '../components/DataTable';
 import { API_BASE_URL } from '../config/api';
 import { AddProjectForm } from '../components/Projects/AddProject';
+import { ViewProject } from '../components/Projects/ViewProject'; // Import the new design
 
 const PRIMARY_RUST = '#b52841';
 const DARK_NAVY = '#1a202c';
@@ -21,8 +22,14 @@ export const ProjectsPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [projects, setProjects] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    
+    // Modal States
     const [modalOpen, setModalOpen] = useState(false);
+    const [viewOpen, setViewOpen] = useState(false);
+    
+    // Data States
     const [editData, setEditData] = useState<any | null>(null);
+    const [selectedProject, setSelectedProject] = useState<any | null>(null);
 
     const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({
         open: false, message: '', severity: 'success'
@@ -86,41 +93,21 @@ export const ProjectsPage = () => {
         },
         {
             id: 'project_url',
-            label: 'PROJECT URL',
+            label: 'URL',
             render: (row: any) => {
                 if (!row.project_url) return <Typography variant="caption" sx={{ color: 'text.disabled' }}>-</Typography>;
-                
-                // Ensure the URL has a protocol to prevent internal routing
                 const href = row.project_url.startsWith('http') ? row.project_url : `https://${row.project_url}`;
-                
                 return (
                     <Link 
-                        href={href} 
-                        target="_blank" 
-                        rel="noopener" 
-                        sx={{ 
-                            fontSize: '0.75rem', 
-                            display: 'flex', 
-                            alignItems: 'center', 
-                            gap: 0.5, 
-                            color: PRIMARY_RUST, 
-                            textDecoration: 'none', 
-                            fontWeight: 600,
-                            '&:hover': { textDecoration: 'underline' }
-                        }}
+                        href={href} target="_blank" rel="noopener" 
+                        sx={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 0.5, color: PRIMARY_RUST, textDecoration: 'none', fontWeight: 600 }}
                     >
-                        {/* Shortens the link for display (removes https:// and long paths) */}
-                        {row.project_url.replace(/(^\w+:|^)\/\//, '').substring(0, 20)}{row.project_url.length > 20 ? '...' : ''}
+                        {row.project_url.replace(/(^\w+:|^)\/\//, '').substring(0, 15)}...
                         <LaunchIcon sx={{ fontSize: '0.85rem' }} />
                     </Link>
                 );
             }
-        },
-        { 
-            id: 'created_at', 
-            label: 'START DATE', 
-            render: (row: any) => new Date(row.created_at).toLocaleDateString('en-GB') 
-        },
+        }
     ];
 
     return (
@@ -148,7 +135,10 @@ export const ProjectsPage = () => {
                     }}
                     onView={(id) => {
                         const project = projects.find(p => p.id === id);
-                        // Navigation or View Dialog logic can be added here
+                        if (project) {
+                            setSelectedProject(project);
+                            setViewOpen(true);
+                        }
                     }}
                     onEdit={(id) => {
                         const project = projects.find(p => p.id === id);
@@ -157,14 +147,12 @@ export const ProjectsPage = () => {
                 />
             )}
 
-            <Snackbar 
-                open={snackbar.open} 
-                autoHideDuration={4000} 
-                onClose={() => setSnackbar({ ...snackbar, open: false })} 
-                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
-            >
-                <Alert severity={snackbar.severity} variant="filled" sx={{ width: '100%', fontWeight: 600 }}>{snackbar.message}</Alert>
-            </Snackbar>
+            {/* Contemporary View Popup */}
+            <ViewProject 
+                open={viewOpen} 
+                onClose={() => setViewOpen(false)} 
+                project={selectedProject} 
+            />
 
             {/* Add/Edit Modal */}
             <Dialog open={modalOpen} onClose={() => setModalOpen(false)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: '12px' } }}>
@@ -185,6 +173,14 @@ export const ProjectsPage = () => {
                     />
                 </DialogContent>
             </Dialog>
+
+            <Snackbar 
+                open={snackbar.open} autoHideDuration={4000} 
+                onClose={() => setSnackbar({ ...snackbar, open: false })} 
+                anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+            >
+                <Alert severity={snackbar.severity} variant="filled" sx={{ width: '100%', fontWeight: 600 }}>{snackbar.message}</Alert>
+            </Snackbar>
         </Box>
     );
 };
