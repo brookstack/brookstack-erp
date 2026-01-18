@@ -9,6 +9,7 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import DnsIcon from '@mui/icons-material/Dns';
 import CodeIcon from '@mui/icons-material/Code';
 import PersonIcon from '@mui/icons-material/Person';
+import SettingsSuggestIcon from '@mui/icons-material/SettingsSuggest';
 
 const RUST = '#b52841';
 const DARK_NAVY = '#1a202c';
@@ -23,15 +24,32 @@ interface ViewProjectProps {
 export const ViewProject: React.FC<ViewProjectProps> = ({ open, onClose, project }) => {
     if (!project) return null;
 
-    const getStatusColor = (status: string) => {
+    const getStatusConfig = (status: string) => {
         const stages: any = {
-            discovery: '#64748b',
-            development: '#0ea5e9',
-            uat: '#f59e0b',
-            completed: '#10b981'
+            discovery: { color: '#64748b', label: 'Discovery & Planning' },
+            development: { color: '#0ea5e9', label: 'Active Development' },
+            uat: { color: '#f59e0b', label: 'User Testing (UAT)' },
+            completed: { color: '#10b981', label: 'Project Completed' }
         };
-        return stages[status?.toLowerCase()] || RUST;
+        return stages[status?.toLowerCase()] || { color: RUST, label: status };
     };
+
+    // Date Safety Logic
+    const formatHumanDate = (row: any) => {
+        const rawDate = row.created_at || row.createdAt || row.date_added || row.start_date;
+        if (!rawDate) return 'Pending';
+        try {
+            return new Intl.DateTimeFormat('en-GB', {
+                day: '2-digit',
+                month: 'short',
+                year: 'numeric'
+            }).format(new Date(rawDate));
+        } catch (e) {
+            return '-';
+        }
+    };
+
+    const statusConfig = getStatusConfig(project.status);
 
     return (
         <Dialog 
@@ -52,7 +70,7 @@ export const ViewProject: React.FC<ViewProjectProps> = ({ open, onClose, project
                             label={project.status?.toUpperCase()} 
                             size="small" 
                             sx={{ 
-                                bgcolor: getStatusColor(project.status), 
+                                bgcolor: statusConfig.color, 
                                 color: '#fff', 
                                 fontWeight: 800, 
                                 borderRadius: '4px',
@@ -95,12 +113,12 @@ export const ViewProject: React.FC<ViewProjectProps> = ({ open, onClose, project
                             <MetricItem 
                                 icon={<CodeIcon fontSize="small" />} 
                                 label="Type" 
-                                value={project.project_type || 'Software'} 
+                                value={project.project_type || 'Software Engineering'} 
                             />
                             <MetricItem 
                                 icon={<CalendarTodayIcon fontSize="small" />} 
-                                label="Created" 
-                                value={new Date(project.created_at).toLocaleDateString('en-GB')} 
+                                label="Date Created" 
+                                value={formatHumanDate(project)} 
                             />
                             
                             {project.project_url && (
@@ -120,6 +138,20 @@ export const ViewProject: React.FC<ViewProjectProps> = ({ open, onClose, project
                     {/* Right Content */}
                     <Grid size={{ xs: 12, md: 8 }} sx={{ p: 4 }}>
                         <Stack spacing={3}>
+                            {/* NEW: Project Stage Detail */}
+                            <Box>
+                                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: DARK_NAVY, mb: 1.5, display: 'flex', alignItems: 'center', gap: 1 }}>
+                                    <SettingsSuggestIcon sx={{ fontSize: '1rem', color: RUST }} /> Current Stage
+                                </Typography>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                    <Box sx={{ px: 2, py: 1, borderRadius: '8px', bgcolor: alpha(statusConfig.color, 0.1), border: `1px solid ${alpha(statusConfig.color, 0.2)}` }}>
+                                        <Typography sx={{ color: statusConfig.color, fontWeight: 900, fontSize: '0.8rem' }}>
+                                            {statusConfig.label}
+                                        </Typography>
+                                    </Box>
+                                </Box>
+                            </Box>
+
                             <Box>
                                 <Typography variant="subtitle2" sx={{ fontWeight: 800, color: DARK_NAVY, mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
                                     <DnsIcon sx={{ fontSize: '1rem', color: RUST }} /> Description
@@ -143,7 +175,7 @@ export const ViewProject: React.FC<ViewProjectProps> = ({ open, onClose, project
                             </Box>
 
                             <Typography variant="caption" sx={{ color: '#cbd5e1', textAlign: 'right', mt: 2 }}>
-                                System Data Reference • 2026
+                                System Data Reference • {new Date().getFullYear()}
                             </Typography>
                         </Stack>
                     </Grid>

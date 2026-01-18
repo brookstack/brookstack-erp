@@ -19,7 +19,7 @@ interface FormProps {
 export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess, initialData }) => {
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
-  const [users, setUsers] = useState<any[]>([]); // Added state for users
+  const [users, setUsers] = useState<any[]>([]); 
   const [error, setError] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
@@ -29,7 +29,6 @@ export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess, initialData })
     accountManager: '', status: 'lead', notes: ''
   });
 
-  // Fetch users for Account Manager selection
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -87,15 +86,15 @@ export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess, initialData })
     if (activeStep === 1) {
       return (
         formData.serviceCategory !== '' &&
-        formData.engagementType !== '' &&
-        formData.description.trim() !== ''
+        formData.engagementType !== ''
+        // description is now optional, so it's removed from validation
       );
     }
     if (activeStep === 2) {
       return (
         formData.accountManager !== '' &&
-        formData.status !== '' &&
-        formData.notes.trim() !== ''
+        formData.status !== ''
+        // notes is now optional, so it's removed from validation
       );
     }
     return false;
@@ -241,7 +240,8 @@ export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess, initialData })
               </TextField>
             </Grid>
             <Grid size={{ xs: 12 }}>
-              <TextField {...fieldProps} multiline rows={4} name="description" label="Service Description" value={formData.description} />
+              {/* REMOVED required={true} HERE */}
+              <TextField {...fieldProps} required={false} multiline rows={4} name="description" label="Service Description (Optional)" value={formData.description} />
             </Grid>
           </Grid>
         )}
@@ -255,20 +255,17 @@ export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess, initialData })
                     {user.full_name || user.username}
                   </MenuItem>
                 ))}
-                {users.length === 0 && (
-                  <MenuItem disabled sx={{ fontSize: '0.85rem' }}>No users found</MenuItem>
-                )}
               </TextField>
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField {...fieldProps} select name="status" label="Client Status" value={formData.status}>
-                <MenuItem value="lead" sx={{ fontSize: '0.85rem' }}>Lead</MenuItem>
                 <MenuItem value="active" sx={{ fontSize: '0.85rem' }}>Active</MenuItem>
-                <MenuItem value="inactive" sx={{ fontSize: '0.85rem' }}>Inactive</MenuItem>
+                 <MenuItem value="lead" sx={{ fontSize: '0.85rem' }}>Lead</MenuItem>
               </TextField>
             </Grid>
             <Grid size={{ xs: 12 }}>
-              <TextField {...fieldProps} multiline rows={4} name="notes" label="Notes" value={formData.notes} />
+              {/* REMOVED required={true} HERE */}
+              <TextField {...fieldProps} required={false} multiline rows={4} name="notes" label="Notes (Optional)" value={formData.notes} />
             </Grid>
           </Grid>
         )}

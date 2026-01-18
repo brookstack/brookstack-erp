@@ -158,7 +158,7 @@ export const AddStaffForm: React.FC<FormProps> = ({ onSuccess, initialData }) =>
             <Grid size={{ xs: 12 }}>
               <TextField {...fieldProps} select name="status" label="Account Status" value={formData.status}>
                 <MenuItem value="active" sx={{ fontSize: '0.85rem' }}>Active</MenuItem>
-                <MenuItem value="inactive" sx={{ fontSize: '0.85rem' }}>Inactive</MenuItem>
+                <MenuItem value="lead" sx={{ fontSize: '0.85rem' }}>Lead</MenuItem>
               </TextField>
             </Grid>
           </Grid>

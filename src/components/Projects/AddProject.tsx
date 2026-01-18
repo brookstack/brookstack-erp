@@ -15,7 +15,7 @@ interface FormProps {
   onSuccess: () => void;
   onError?: (msg: string) => void;
   initialData?: any; 
-  selectedClient?: any; // Pre-fills client if opened from ViewCustomer
+  selectedClient?: any;
 }
 
 export const AddProjectForm: React.FC<FormProps> = ({ onSuccess, onError, initialData, selectedClient }) => {
@@ -29,6 +29,7 @@ export const AddProjectForm: React.FC<FormProps> = ({ onSuccess, onError, initia
 
   const [formData, setFormData] = useState({
     project_name: '',
+    description: '',
     client_id: '',
     lead_staff_id: '',
     project_type: '',
@@ -39,7 +40,7 @@ export const AddProjectForm: React.FC<FormProps> = ({ onSuccess, onError, initia
     notes: ''
   });
 
-  // Load Dependencies (Clients and Staff/Users)
+  // Load Dependencies
   useEffect(() => {
     const loadDependencies = async () => {
       try {
@@ -54,7 +55,7 @@ export const AddProjectForm: React.FC<FormProps> = ({ onSuccess, onError, initia
         setClients(clientData);
         setStaff(staffData);
       } catch (err) {
-        setError("Failed to sync project dependencies (Staff/Clients).");
+        setError("Failed to sync project dependencies.");
       } finally {
         setFetchingData(false);
       }
@@ -65,8 +66,10 @@ export const AddProjectForm: React.FC<FormProps> = ({ onSuccess, onError, initia
   // Handle Initial or Contextual Data
   useEffect(() => {
     if (initialData) {
+      // EDIT MODE: Populate all fields
       setFormData({
         project_name: initialData.project_name || '',
+        description: initialData.description || '',
         client_id: initialData.client_id || '',
         lead_staff_id: initialData.lead_staff_id || '',
         project_type: initialData.project_type || '',
@@ -77,14 +80,31 @@ export const AddProjectForm: React.FC<FormProps> = ({ onSuccess, onError, initia
         notes: initialData.notes || ''
       });
     } else if (selectedClient) {
+      // ADD MODE (from Customer Profile): Lock to that customer
       setFormData(prev => ({ ...prev, client_id: selectedClient.id }));
+    } else {
+      // ADD MODE (Global): Reset to empty to allow selection
+      setFormData(prev => ({ 
+        ...prev, 
+        project_name: '', 
+        description: '', 
+        client_id: '',
+        project_type: ''
+      }));
     }
   }, [initialData, selectedClient]);
 
   const steps = ['Project Identity', 'Environment & Stack', 'Review & Launch'];
 
   const isStepValid = () => {
-    if (activeStep === 0) return formData.project_name.trim() !== '' && formData.client_id !== '' && formData.project_type !== '';
+    if (activeStep === 0) {
+      return (
+        formData.client_id !== '' && 
+        formData.project_type !== '' &&
+        formData.project_name.trim() !== '' && 
+        formData.description.trim() !== ''
+      );
+    }
     if (activeStep === 1) return formData.tech_stack.trim() !== '';
     if (activeStep === 2) return formData.status !== '' && formData.lead_staff_id !== '';
     return false;
@@ -154,11 +174,18 @@ export const AddProjectForm: React.FC<FormProps> = ({ onSuccess, onError, initia
       <Box sx={{ px: 1 }}>
         {activeStep === 0 && (
           <Grid container spacing={2.5}>
-            <Grid size={{ xs: 12 }}>
-                <TextField {...fieldProps} name="project_name" label="Project Name" value={formData.project_name} />
-            </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
-              <TextField {...fieldProps} select name="client_id" label="Assigned Client" value={formData.client_id} disabled={!!selectedClient}>
+              <TextField 
+                {...fieldProps} 
+                select 
+                name="client_id" 
+                label="Assigned Client" 
+                value={formData.client_id} 
+                /* Only disable if we are EDITING an existing project 
+                  OR if we have explicitly passed a selectedClient (from ViewCustomer)
+                */
+                disabled={Boolean(initialData) || (Boolean(selectedClient) && !initialData)}
+              >
                 {clients.map((c) => (
                   <MenuItem key={c.id} value={c.id} sx={{ fontSize: '0.85rem' }}>{c.companyName}</MenuItem>
                 ))}
@@ -166,10 +193,28 @@ export const AddProjectForm: React.FC<FormProps> = ({ onSuccess, onError, initia
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField {...fieldProps} select name="project_type" label="Software Category" value={formData.project_type}>
-                {['Website Development', 'Hosting Services', 'IT Consulting', 'ERP Development', 'Mobile App Development', 'Web App Development', 'SaaS Platform'].map((opt) => (
+                {[
+                  'Website Development', 'Hosting Services', 'IT Consulting', 
+                  'ERP Development', 'Mobile App Development', 'Web App Development', 'SaaS Platform'
+                ].map((opt) => (
                   <MenuItem key={opt} value={opt} sx={{ fontSize: '0.85rem' }}>{opt}</MenuItem>
                 ))}
               </TextField>
+            </Grid>
+
+            <Grid size={{ xs: 12 }}>
+                <TextField {...fieldProps} name="project_name" label="Project Name" value={formData.project_name} />
+            </Grid>
+            <Grid size={{ xs: 12 }}>
+                <TextField 
+                  {...fieldProps} 
+                  multiline 
+                  rows={3} 
+                  name="description" 
+                  label="Project Description" 
+                  placeholder="Detailed scope and objectives..." 
+                  value={formData.description} 
+                />
             </Grid>
           </Grid>
         )}
@@ -177,10 +222,10 @@ export const AddProjectForm: React.FC<FormProps> = ({ onSuccess, onError, initia
         {activeStep === 1 && (
           <Grid container spacing={2.5}>
             <Grid size={{ xs: 12 }}>
-              <TextField {...fieldProps} name="tech_stack" label="Core Stack" placeholder="e.g. React, PostgreSQL, Python" value={formData.tech_stack} />
+              <TextField {...fieldProps} name="tech_stack" label="Core Stack" placeholder="e.g. React, PostgreSQL, Node.js" value={formData.tech_stack} />
             </Grid>
-            <Grid size={{ xs: 12, md: 6 }}><TextField {...fieldProps} required={false} name="project_url" label="Staging/Live URL" value={formData.project_url} /></Grid>
-            <Grid size={{ xs: 12, md: 6 }}><TextField {...fieldProps} required={false} name="repo_url" label="Version Control (Git)" value={formData.repo_url} /></Grid>
+            <Grid size={{ xs: 12, md: 6 }}><TextField {...fieldProps} required={false} name="project_url" label="Live URL" value={formData.project_url} /></Grid>
+            <Grid size={{ xs: 12, md: 6 }}><TextField {...fieldProps} required={false} name="repo_url" label="Repository (Git)" value={formData.repo_url} /></Grid>
           </Grid>
         )}
 
@@ -190,7 +235,7 @@ export const AddProjectForm: React.FC<FormProps> = ({ onSuccess, onError, initia
               <TextField {...fieldProps} select name="lead_staff_id" label="Technical Lead" value={formData.lead_staff_id}>
                 {staff.map((s) => (
                   <MenuItem key={s.id} value={s.id} sx={{ fontSize: '0.85rem' }}>
-                    {s.full_name} {/* Using full_name as requested */}
+                    {s.full_name}
                   </MenuItem>
                 ))}
               </TextField>
@@ -203,7 +248,7 @@ export const AddProjectForm: React.FC<FormProps> = ({ onSuccess, onError, initia
               </TextField>
             </Grid>
             <Grid size={{ xs: 12 }}>
-              <TextField {...fieldProps} multiline rows={3} name="notes" label="Development Notes" value={formData.notes} required={false} />
+              <TextField {...fieldProps} multiline rows={3} name="notes" label="Technical Handover Notes" value={formData.notes} required={false} />
             </Grid>
           </Grid>
         )}
@@ -217,7 +262,7 @@ export const AddProjectForm: React.FC<FormProps> = ({ onSuccess, onError, initia
           onClick={activeStep === steps.length - 1 ? handleSubmit : () => setActiveStep(prev => prev + 1)}
           sx={{ bgcolor: RUST_COLOR, '&:hover': { bgcolor: RUST_HOVER }, borderRadius: '8px', px: 4, fontWeight: 700, textTransform: 'none' }}
         >
-          {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : activeStep === steps.length - 1 ? (initialData ? 'Update Record' : 'Create Project') : 'Next Step'}
+          {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : activeStep === steps.length - 1 ? (initialData ? 'Update Project' : 'Launch Project') : 'Next Step'}
         </Button>
       </Stack>
     </Box>

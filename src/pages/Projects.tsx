@@ -7,12 +7,14 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import LaunchIcon from '@mui/icons-material/Launch';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import axios from 'axios';
 
 // Components
 import { DataTable } from '../components/DataTable';
 import { API_BASE_URL } from '../config/api';
 import { AddProjectForm } from '../components/Projects/AddProject';
-import { ViewProject } from '../components/Projects/ViewProject'; // Import the new design
+import { ViewProject } from '../components/Projects/ViewProject';
 
 const PRIMARY_RUST = '#b52841';
 const DARK_NAVY = '#1a202c';
@@ -21,13 +23,12 @@ const SANS_STACK = 'ui-sans-serif, system-ui, sans-serif';
 export const ProjectsPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [projects, setProjects] = useState<any[]>([]);
+    const [customers, setCustomers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     
-    // Modal States
     const [modalOpen, setModalOpen] = useState(false);
     const [viewOpen, setViewOpen] = useState(false);
     
-    // Data States
     const [editData, setEditData] = useState<any | null>(null);
     const [selectedProject, setSelectedProject] = useState<any | null>(null);
 
@@ -37,34 +38,58 @@ export const ProjectsPage = () => {
 
     const statusFilter = searchParams.get('status');
 
-    const fetchProjects = useCallback(async () => {
+    const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/projects`);
-            const data = await response.json();
-            setProjects(data);
+            const [projRes, custRes] = await Promise.all([
+                axios.get(`${API_BASE_URL}/projects`),
+                axios.get(`${API_BASE_URL}/customers`)
+            ]);
+            setProjects(projRes.data);
+            setCustomers(custRes.data);
         } catch (error) {
-            setSnackbar({ open: true, message: 'Failed to fetch projects', severity: 'error' });
+            setSnackbar({ open: true, message: 'Failed to fetch dashboard data', severity: 'error' });
         } finally {
             setLoading(false);
         }
     }, []);
 
-    useEffect(() => { fetchProjects(); }, [fetchProjects]);
+    useEffect(() => { fetchData(); }, [fetchData]);
 
     const filteredProjects = useMemo(() => {
         if (!statusFilter) return projects;
         return projects.filter(p => p.status?.toLowerCase() === statusFilter.toLowerCase());
     }, [projects, statusFilter]);
 
+    const formatHumanDate = (dateString: string) => {
+        if (!dateString) return '-';
+        return new Intl.DateTimeFormat('en-GB', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        }).format(new Date(dateString));
+    };
+
     const columns = [
+        { 
+            id: 'created_at', 
+            label: 'DATE INITIATED',
+            render: (row: any) => (
+                <Stack direction="row" spacing={1} alignItems="center">
+                    <CalendarMonthIcon sx={{ fontSize: '0.9rem', color: PRIMARY_RUST }} />
+                    <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: DARK_NAVY }}>
+                        {formatHumanDate(row.created_at || row.start_date)}
+                    </Typography>
+                </Stack>
+            )
+        },
         { id: 'project_name', label: 'PROJECT NAME' },
         { id: 'clientName', label: 'CLIENT' }, 
         { 
             id: 'project_type', 
             label: 'TYPE',
             render: (row: any) => (
-                <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>
+                <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b' }}>
                     {row.project_type}
                 </Typography>
             )
@@ -102,8 +127,8 @@ export const ProjectsPage = () => {
                         href={href} target="_blank" rel="noopener" 
                         sx={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 0.5, color: PRIMARY_RUST, textDecoration: 'none', fontWeight: 600 }}
                     >
-                        {row.project_url.replace(/(^\w+:|^)\/\//, '').substring(0, 15)}...
-                        <LaunchIcon sx={{ fontSize: '0.85rem' }} />
+                        {row.project_url.replace(/(^\w+:|^)\/\//, '').substring(0, 15)}
+                        <LaunchIcon sx={{ fontSize: '0.8rem' }} />
                     </Link>
                 );
             }
@@ -112,13 +137,12 @@ export const ProjectsPage = () => {
 
     return (
         <Box sx={{ width: '100%', p: 3 }}>
-            {/* Active Filter UI */}
             {statusFilter && (
                 <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2, p: 1.5, bgcolor: alpha(PRIMARY_RUST, 0.05), borderRadius: '8px', border: `1px solid ${alpha(PRIMARY_RUST, 0.1)}` }}>
                     <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: SANS_STACK }}>
                         Filtering Stage: <span style={{ color: PRIMARY_RUST }}>{statusFilter.toUpperCase()}</span>
                     </Typography>
-                    <Button size="small" variant="text" onClick={() => setSearchParams({})} sx={{ color: PRIMARY_RUST, textTransform: 'none', fontWeight: 700 }}>Clear</Button>
+                    <Button size="small" variant="text" onClick={() => setSearchParams({})} sx={{ color: PRIMARY_RUST, textTransform: 'none', fontWeight: 700 }}>Clear Filter</Button>
                 </Stack>
             )}
 
@@ -135,10 +159,7 @@ export const ProjectsPage = () => {
                     }}
                     onView={(id) => {
                         const project = projects.find(p => p.id === id);
-                        if (project) {
-                            setSelectedProject(project);
-                            setViewOpen(true);
-                        }
+                        if (project) { setSelectedProject(project); setViewOpen(true); }
                     }}
                     onEdit={(id) => {
                         const project = projects.find(p => p.id === id);
@@ -147,27 +168,26 @@ export const ProjectsPage = () => {
                 />
             )}
 
-            {/* Contemporary View Popup */}
             <ViewProject 
                 open={viewOpen} 
                 onClose={() => setViewOpen(false)} 
                 project={selectedProject} 
             />
 
-            {/* Add/Edit Modal */}
-            <Dialog open={modalOpen} onClose={() => setModalOpen(false)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: '12px' } }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid #eee' }}>
+            <Dialog open={modalOpen} onClose={() => setModalOpen(false)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: '20px' } }}>
+                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid #f1f5f9' }}>
                     <Typography variant="h6" sx={{ fontWeight: 800, color: DARK_NAVY, fontFamily: SANS_STACK }}>
                         {editData ? `Update: ${editData.project_name}` : 'Initiate New Project'}
                     </Typography>
                     <IconButton onClick={() => setModalOpen(false)}><CloseIcon /></IconButton>
                 </Stack>
-                <DialogContent sx={{ py: 4 }}>
+                <DialogContent sx={{ py: 3 }}>
                     <AddProjectForm
                         initialData={editData}
+                        // customers={customers} 
                         onSuccess={() => {
                             setModalOpen(false);
-                            fetchProjects();
+                            fetchData();
                             setSnackbar({ open: true, message: editData ? 'Project updated' : 'Project initiated successfully', severity: 'success' });
                         }}
                     />

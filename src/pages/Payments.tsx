@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box, Chip, alpha, Dialog, DialogContent, IconButton,
   Typography, Stack, Snackbar, Alert, Button, CircularProgress,
@@ -76,22 +76,31 @@ export const PaymentsPage = () => {
     {
       id: 'payment_date',
       label: 'DATE',
-      render: (row: any) => (
-        <Typography variant="body2">
-          {new Date(row.payment_date).toLocaleDateString('en-GB')}
-        </Typography>
-      )
+      render: (row: any) => {
+        if (!row.payment_date) return '---';
+        const date = new Date(row.payment_date);
+        return (
+          <Box>
+            <Typography sx={{ fontSize: '0.8rem', color: DARK_NAVY, fontWeight: 700 }}>
+              {date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>
+              {date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+            </Typography>
+          </Box>
+        );
+      }
     },
     {
       id: 'doc_no',
       label: 'INVOICE & CLIENT',
       render: (row: any) => (
         <Stack spacing={0}>
-          <Typography variant="subtitle2" sx={{ color: DARK_NAVY, fontWeight: 600 }}>
+          <Typography sx={{ fontSize: '0.75rem', color: RUST, fontWeight: 700 }}>
             {row.doc_no}
           </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {row.clientName}
+          <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, color: 'text.secondary' }}>
+            {row.clientName?.toUpperCase()}
           </Typography>
         </Stack>
       )
@@ -108,16 +117,18 @@ export const PaymentsPage = () => {
             servicesList = typeof servicesRaw === 'string' ? JSON.parse(servicesRaw) : (servicesRaw || []);
         } catch (e) { servicesList = []; }
 
+        if (servicesList.length === 0) return <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled' }}>---</Typography>;
+
         return (
-          <Box>
+          <Box sx={{ py: 0.5 }}>
             {servicesList.slice(0, 2).map((s: any, i: number) => (
-              <Typography key={i} variant="caption" sx={{ display: 'block' }}>
-                • {s.description || s.item_name}
+              <Typography key={i} sx={{ fontSize: '0.7rem', color: DARK_NAVY, display: 'flex', alignItems: 'center', '&::before': { content: '"•"', marginRight: '4px', color: RUST } }}>
+                {s.description || s.item_name}
               </Typography>
             ))}
             {servicesList.length > 2 && (
-              <Typography variant="caption" sx={{ color: RUST, fontWeight: 600 }}>
-                + {servicesList.length - 2} more items
+              <Typography variant="caption" sx={{ color: RUST, fontSize: '0.65rem', fontStyle: 'italic' }}>
+                + {servicesList.length - 2} more
               </Typography>
             )}
           </Box>
@@ -128,7 +139,7 @@ export const PaymentsPage = () => {
       id: 'amount_paid',
       label: 'AMOUNT PAID',
       render: (row: any) => (
-        <Typography variant="body2" sx={{ color: SUCCESS_GREEN, fontWeight: 400 }}>
+        <Typography sx={{ fontSize: '0.85rem', color: SUCCESS_GREEN, fontWeight: 700 }}>
           {row.currency || 'KES'} {Number(row.amount_paid).toLocaleString()}
         </Typography>
       )
@@ -153,12 +164,11 @@ export const PaymentsPage = () => {
             label={status.toUpperCase()} 
             size="small" 
             sx={{ 
-              fontFamily: 'inherit', // Forces font inheritance from global theme
-              fontSize: '0.65rem', 
+              fontSize: '0.6rem', 
               bgcolor: style.bg, 
               color: style.color, 
               borderRadius: '4px', 
-              fontWeight: 700 
+              fontWeight: 800 
             }} 
           />
         );
@@ -250,7 +260,7 @@ export const PaymentsPage = () => {
 
       <Dialog open={paymentModalOpen} onClose={() => setPaymentModalOpen(false)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: '16px' } }}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid', borderColor: 'divider', bgcolor: alpha(DARK_NAVY, 0.02) }}>
-          <Typography variant="subtitle2" sx={{ color: DARK_NAVY, fontWeight: 700 }}>
+          <Typography sx={{ color: DARK_NAVY, fontWeight: 700, fontSize: '0.9rem' }}>
             {editData ? `Edit Payment: ${editData.doc_no}` : 'Record New Payment'}
           </Typography>
           <IconButton size="small" onClick={() => setPaymentModalOpen(false)}><CloseIcon fontSize="small" /></IconButton>

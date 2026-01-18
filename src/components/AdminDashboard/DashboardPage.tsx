@@ -1,6 +1,8 @@
 import { Box, Typography, } from '@mui/material';
 import { QuickActions } from './QuickActions';
-import { StatsSection } from './StatsCard';
+import { StatsSection } from './CustomerStatsCards';
+import { FinancialStatsSection } from './FinancialStatsCards';
+import { AnalyticsSection } from './AnalyticsCards';
 
 export default function DashboardPage() {
   return (
@@ -21,6 +23,8 @@ export default function DashboardPage() {
       </Typography>
       <Box sx={{ mb: 4}}>
         <StatsSection />
+        <FinancialStatsSection/>
+        <AnalyticsSection/>
       </Box>
       <Box>
         <QuickActions />

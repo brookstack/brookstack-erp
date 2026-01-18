@@ -197,7 +197,7 @@ export const ViewPayment: React.FC<ReceiptProps> = ({ data, onBack }) => {
                             <Box sx={{ p: 2, bgcolor: alpha(PRIMARY_RUST, 0.02), borderLeft: `2px solid ${PRIMARY_RUST}` }}>
                                 <Typography variant="caption" sx={{ color: PRIMARY_RUST, display: 'block', mb: 0.5 }}>NOTES</Typography>
                                 <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'textSecondary' }}>
-                                    {data.notes || 'Confirming receipt of funds for services rendered. Thank you for your business.'}
+                                    {data.notes || 'Payment received with thanks. Thank you for the opportunity to serve your business'}
                                 </Typography>
                             </Box>
                         </Grid>

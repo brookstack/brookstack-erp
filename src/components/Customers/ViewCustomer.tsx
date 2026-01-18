@@ -9,8 +9,9 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import ContactPageIcon from '@mui/icons-material/ContactPage';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
-import CloseIcon from '@mui/icons-material/Close';
+import PaymentOutlinedIcon from '@mui/icons-material/PaymentOutlined';
 import LaunchIcon from '@mui/icons-material/Launch';
+import CloseIcon from '@mui/icons-material/Close';
 
 // Components
 import { AddBillingForm } from '../Billing/AddBilling';
@@ -18,9 +19,9 @@ import { ViewInvoice } from '../Billing/ViewBill';
 import { ViewPayment } from '../Payments/ViewPayment';
 import { AddPaymentForm } from '../Payments/PaymentsForm';
 import { AddProjectForm } from '../Projects/AddProject'; 
+import { ViewProject } from '../Projects/ViewProject';
 import { DataTable } from '../DataTable';
 import { API_BASE_URL } from '../../config/api';
-import { ViewProject } from '../Projects/ViewProject';
 
 const RUST = '#b52841';
 const DARK_NAVY = '#1a202c';
@@ -42,17 +43,17 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
     // Modal States
     const [isInvoiceModalOpen, setIsInvoiceModalOpen] = useState(false);
     const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
-    const [isViewProjectOpen, setIsViewProjectOpen] = useState(false); // New: View Toggle
+    const [isViewProjectOpen, setIsViewProjectOpen] = useState(false);
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
 
     // Selection States
     const [selectedInvoice, setSelectedInvoice] = useState<any | null>(null);
     const [selectedPayment, setSelectedPayment] = useState<any | null>(null);
-    const [selectedProject, setSelectedProject] = useState<any | null>(null); // New: Project Detail
+    const [selectedProject, setSelectedProject] = useState<any | null>(null);
     const [paymentTarget, setPaymentTarget] = useState<any | null>(null);
     const [editData, setEditData] = useState<any | null>(null);
 
-    const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; type: 'billing' | 'payments' | 'projects'; data: any | null }>({
+    const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; type: string; data: any | null }>({
         open: false, type: 'billing', data: null
     });
 
@@ -75,6 +76,7 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
 
             const filteredBills = billData.filter((b: any) => Number(b.client_id) === Number(customer.id));
             const filteredProjs = projData.filter((p: any) => Number(p.client_id) === Number(customer.id));
+            
             setBillingRecords(filteredBills);
             setProjectRecords(filteredProjs);
 
@@ -93,10 +95,11 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
 
     const handleActualDelete = async () => {
         if (!deleteConfirm.data?.id) return;
+        const endpoint = deleteConfirm.type === 'payments' ? 'api/payments' : deleteConfirm.type;
         try {
-            const response = await fetch(`${API_BASE_URL}/${deleteConfirm.type}/${deleteConfirm.data.id}`, { method: 'DELETE' });
+            const response = await fetch(`${API_BASE_URL}/${endpoint}/${deleteConfirm.data.id}`, { method: 'DELETE' });
             if (response.ok) {
-                setSnackbar({ open: true, message: 'Record deleted', severity: 'success' });
+                setSnackbar({ open: true, message: 'Record updated successfully', severity: 'success' });
                 fetchClientData();
             } else throw new Error('Delete failed');
         } catch (err: any) {
@@ -109,31 +112,135 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
     // --- TAB COLUMNS ---
 
     const billingColumns = [
-        { id: 'doc_no', label: 'DOCUMENT', render: (row: any) => <Box><Typography sx={{ fontSize: '0.75rem', color: RUST, fontWeight: 700 }}>{row.doc_no}</Typography><Typography variant="caption">{row.type?.toUpperCase()}</Typography></Box> },
-        { id: 'grand_total', label: 'TOTAL', render: (row: any) => <Typography sx={{ fontSize: '0.85rem' }}>{row.currency} {(Number(row.grand_total) || 0).toLocaleString()}</Typography> },
-        { id: 'balance', label: 'BALANCE', render: (row: any) => {
-            const balance = (Number(row.grand_total) || 0) - (Number(row.total_paid) || 0);
-            return <Typography sx={{ fontSize: '0.85rem', color: balance > 0 ? RUST : SUCCESS_GREEN, fontWeight: 700 }}>{row.currency} {balance.toLocaleString()}</Typography>;
-        }}
+        {
+            id: 'created_at',
+            label: 'DATE',
+            render: (row: any) => {
+                const date = new Date(row.created_at);
+                return (
+                    <Box>
+                        <Typography sx={{ fontSize: '0.8rem', color: DARK_NAVY, fontWeight: 700 }}>
+                            {date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>
+                            {date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                        </Typography>
+                    </Box>
+                );
+            }
+        },
+        { id: 'doc_no', label: 'DOCUMENT', render: (row: any) => <Box><Typography sx={{ fontSize: '0.75rem', color: RUST, fontWeight: 700 }}>{row.doc_no}</Typography><Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600 }}>{row.type?.toUpperCase()}</Typography></Box> },
+        {
+            id: 'services',
+            label: 'SERVICE ITEMS',
+            render: (row: any) => {
+                let items = [];
+                try {
+                    const rawData = row.items || row.services || row.service_items || [];
+                    items = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+                } catch (e) { items = []; }
+                return (
+                    <Stack spacing={0.5} sx={{ py: 1 }}>
+                        {items.slice(0, 2).map((item: any, idx: number) => (
+                            <Typography key={idx} sx={{ fontSize: '0.7rem', color: DARK_NAVY, display: 'flex', alignItems: 'center', '&::before': { content: '"•"', marginRight: '4px', color: RUST } }}>
+                                {item.description}
+                            </Typography>
+                        ))}
+                    </Stack>
+                );
+            }
+        },
+        { id: 'grand_total', label: 'TOTAL', render: (row: any) => <Typography sx={{ fontSize: '0.85rem', fontWeight: 700 }}>{row.currency} {(Number(row.grand_total) || 0).toLocaleString()}</Typography> },
+        { 
+            id: 'status', label: 'STATUS',
+            render: (row: any) => {
+                const totalPaid = Number(row.total_paid || 0);
+                const grandTotal = Number(row.grand_total);
+                let label = 'UNPAID', color = RUST;
+                if (totalPaid >= grandTotal && grandTotal > 0) { label = 'FULLY PAID'; color = SUCCESS_GREEN; }
+                else if (totalPaid > 0) { label = 'PARTIAL'; color = WARNING_ORANGE; }
+                return <Chip label={label} size="small" sx={{ bgcolor: alpha(color, 0.1), color, fontSize: '0.6rem', fontWeight: 800, borderRadius: '4px' }} />;
+            }
+        }
     ];
 
     const paymentColumns = [
-        { id: 'payment_date', label: 'DATE', render: (row: any) => new Date(row.payment_date).toLocaleDateString('en-GB') },
-        { id: 'doc_ref', label: 'INVOICE', render: (row: any) => <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }}>{row.doc_no || '---'}</Typography> },
+        {
+            id: 'payment_date',
+            label: 'DATE',
+            render: (row: any) => {
+                const date = new Date(row.payment_date);
+                return (
+                    <Box>
+                        <Typography sx={{ fontSize: '0.8rem', color: DARK_NAVY, fontWeight: 700 }}>
+                            {date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>
+                            {date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                        </Typography>
+                    </Box>
+                );
+            }
+        },
+        { id: 'doc_no', label: 'INVOICE', render: (row: any) => <Typography sx={{ fontSize: '0.75rem', color: RUST, fontWeight: 700 }}>{row.doc_no}</Typography> },
+        {
+            id: 'service_items',
+            label: 'SERVICE ITEMS',
+            render: (row: any) => {
+                const masterBilling = billingRecords.find(b => b.id === row.billing_id);
+                const servicesRaw = row.billing_services_json || masterBilling?.services;
+                let items = [];
+                try { items = typeof servicesRaw === 'string' ? JSON.parse(servicesRaw) : (servicesRaw || []); } catch (e) { items = []; }
+                return (
+                    <Stack spacing={0.5} sx={{ py: 1 }}>
+                        {items.slice(0, 2).map((item: any, idx: number) => (
+                            <Typography key={idx} sx={{ fontSize: '0.7rem', color: DARK_NAVY, display: 'flex', alignItems: 'center', '&::before': { content: '"•"', marginRight: '4px', color: RUST } }}>
+                                {item.description || item.item_name}
+                            </Typography>
+                        ))}
+                    </Stack>
+                );
+            }
+        },
         { id: 'amount', label: 'AMOUNT PAID', render: (row: any) => <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, color: SUCCESS_GREEN }}>{row.currency || 'KES'} {(Number(row.amount_paid) || 0).toLocaleString()}</Typography> },
-        { id: 'method', label: 'METHOD', render: (row: any) => <Chip label={row.payment_method || 'CASH'} size="small" variant="outlined" sx={{ fontSize: '0.65rem' }} /> }
+        {
+            id: 'billing_status', label: 'INVOICE STATUS',
+            render: (row: any) => {
+                const masterBilling = billingRecords.find(b => b.id === row.billing_id);
+                const status = (masterBilling?.status || row.billing_status || 'unpaid').toLowerCase();
+                const config: any = { paid: { color: SUCCESS_GREEN, bg: alpha(SUCCESS_GREEN, 0.1) }, partial: { color: WARNING_ORANGE, bg: alpha(WARNING_ORANGE, 0.1) }, unpaid: { color: RUST, bg: alpha(RUST, 0.1) } };
+                const style = config[status] || config.unpaid;
+                return <Chip label={status.toUpperCase()} size="small" sx={{ fontSize: '0.6rem', bgcolor: style.bg, color: style.color, borderRadius: '4px', fontWeight: 800 }} />;
+            }
+        }
     ];
 
     const projectColumns = [
-        { id: 'project_name', label: 'PROJECT NAME', render: (row: any) => <Typography sx={{ fontSize: '0.85rem', fontWeight: 700 }}>{row.project_name}</Typography> },
-        { id: 'project_type', label: 'TYPE', render: (row: any) => <Chip label={row.project_type || 'Software'} size="small" variant="outlined" sx={{ fontSize: '0.65rem' }} /> },
+        {
+            id: 'created_at',
+            label: 'LAUNCH DATE',
+            render: (row: any) => {
+                const date = new Date(row.created_at);
+                return (
+                    <Box>
+                        <Typography sx={{ fontSize: '0.8rem', color: DARK_NAVY, fontWeight: 700 }}>
+                            {date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                        </Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>
+                            {date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                        </Typography>
+                    </Box>
+                );
+            }
+        },
+        { id: 'project_name', label: 'PROJECT NAME', render: (row: any) => <Box><Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: DARK_NAVY }}>{row.project_name}</Typography><Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>{row.project_type}</Typography></Box> },
         {
             id: 'status',
             label: 'STAGE',
             render: (row: any) => {
-                const colors: any = { discovery: '#64748b', development: '#0ea5e9', completed: SUCCESS_GREEN };
+                const colors: any = { discovery: '#64748b', design: '#7c3aed', development: '#0ea5e9', completed: SUCCESS_GREEN };
                 const color = colors[row.status?.toLowerCase()] || WARNING_ORANGE;
-                return <Chip label={row.status?.toUpperCase()} size="small" sx={{ bgcolor: alpha(color, 0.1), color, fontWeight: 800, fontSize: '0.6rem' }} />;
+                return <Chip label={row.status?.toUpperCase()} size="small" sx={{ bgcolor: alpha(color, 0.1), color, fontWeight: 800, fontSize: '0.6rem', borderRadius: '4px' }} />;
             }
         },
         { 
@@ -142,12 +249,10 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
             render: (row: any) => row.project_url ? (
                 <Link 
                     href={row.project_url.startsWith('http') ? row.project_url : `https://${row.project_url}`} 
-                    target="_blank" 
-                    rel="noopener" 
-                    sx={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 0.5, color: RUST, textDecoration: 'none', fontWeight: 600 }}
+                    target="_blank" rel="noopener" 
+                    sx={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: 0.5, color: RUST, textDecoration: 'none', fontWeight: 700 }}
                 >
-                    {row.project_url.replace(/(^\w+:|^)\/\//, '').substring(0, 20)}...
-                    <LaunchIcon sx={{ fontSize: '0.85rem' }} />
+                    {row.project_url.replace(/(^\w+:|^)\/\//, '').substring(0, 20)}... <LaunchIcon sx={{ fontSize: '0.85rem' }} />
                 </Link>
             ) : <Typography variant="caption" sx={{ color: 'text.disabled' }}>-</Typography>
         }
@@ -162,12 +267,7 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
                 <Chip label={customer.status?.toUpperCase() || 'ACTIVE'} size="small" sx={{ width: 'fit-content', fontWeight: 800, borderRadius: '6px' }} />
             </Stack>
 
-            <Tabs 
-                value={activeTab} 
-                onChange={(_, v: number) => setActiveTab(v)} 
-                sx={{ mb: 3, borderBottom: 1, borderColor: 'divider', '& .Mui-selected': { color: RUST } }} 
-                TabIndicatorProps={{ sx: { bgcolor: RUST } }}
-            >
+            <Tabs value={activeTab} onChange={(_, v: number) => setActiveTab(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider', '& .Mui-selected': { color: RUST } }} TabIndicatorProps={{ sx: { bgcolor: RUST } }}>
                 <Tab label="Overview" sx={{ textTransform: 'none', fontWeight: 700 }} />
                 <Tab label="Invoices" sx={{ textTransform: 'none', fontWeight: 700 }} />
                 <Tab label="Payments" sx={{ textTransform: 'none', fontWeight: 700 }} />
@@ -192,6 +292,13 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
                             onView={(id) => setSelectedInvoice(billingRecords.find(r => r.id === id))}
                             onEdit={(id) => { setEditData(billingRecords.find(r => r.id === id)); setIsInvoiceModalOpen(true); }}
                             onDelete={(id) => setDeleteConfirm({ open: true, type: 'billing', data: billingRecords.find(r => r.id === id) })}
+                            additionalActions={(row: any) => {
+                                const isPaid = Number(row.total_paid || 0) >= Number(row.grand_total);
+                                return row.type === 'invoice' && !isPaid ? ({
+                                    label: 'Pay', icon: <PaymentOutlinedIcon sx={{ fontSize: '1.1rem' }} />,
+                                    onClick: (row) => { setPaymentTarget(row); setIsPaymentModalOpen(true); }
+                                }) : null;
+                            }}
                         />
                     )}
 
@@ -199,23 +306,25 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
                          selectedPayment ? <ViewPayment data={selectedPayment} onBack={() => setSelectedPayment(null)} /> :
                          <DataTable
                              title="Payment Collection" columns={paymentColumns} data={paymentRecords}
-                             onView={(id) => setSelectedPayment(paymentRecords.find(p => p.id === id))}
+                             onView={(id) => {
+                                 const record = paymentRecords.find(p => p.id === id);
+                                 if (record) {
+                                     const masterBilling = billingRecords.find(b => b.id === record.billing_id);
+                                     setSelectedPayment({ ...record, billing_services_json: masterBilling?.services || record.billing_services_json });
+                                 }
+                             }}
+                             onEdit={(id) => { setEditData(paymentRecords.find(p => p.id === id)); setIsPaymentModalOpen(true); }}
                              onDelete={(id) => setDeleteConfirm({ open: true, type: 'payments', data: paymentRecords.find(p => p.id === id) })}
                          />
                     )}
 
                     {activeTab === 3 && (
                         <DataTable
-                            title="Software Projects"
-                            columns={projectColumns}
-                            data={projectRecords}
+                            title="Software Projects" columns={projectColumns} data={projectRecords}
                             primaryAction={{ label: 'New Project', onClick: () => { setEditData(null); setIsProjectModalOpen(true); } }}
                             onView={(id) => {
                                 const project = projectRecords.find(p => p.id === id);
-                                if (project) {
-                                    setSelectedProject(project);
-                                    setIsViewProjectOpen(true);
-                                }
+                                if (project) { setSelectedProject(project); setIsViewProjectOpen(true); }
                             }}
                             onEdit={(id) => { setEditData(projectRecords.find(p => p.id === id)); setIsProjectModalOpen(true); }}
                             onDelete={(id) => setDeleteConfirm({ open: true, type: 'projects', data: projectRecords.find(p => p.id === id) })}
@@ -225,60 +334,36 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
             )}
 
             {/* --- MODALS --- */}
-            
-            {/* View Project Popup */}
-            <ViewProject 
-                open={isViewProjectOpen} 
-                onClose={() => setIsViewProjectOpen(false)} 
-                project={selectedProject} 
-            />
+            <ViewProject open={isViewProjectOpen} onClose={() => setIsViewProjectOpen(false)} project={selectedProject} />
 
-            {/* Add/Edit Project Form */}
             <Dialog open={isProjectModalOpen} onClose={() => setIsProjectModalOpen(false)} fullWidth maxWidth="md">
                 <DialogContent sx={{ p: 4 }}>
-                    <AddProjectForm 
-                        initialData={editData} 
-                        selectedClient={customer} 
-                        onSuccess={() => { setIsProjectModalOpen(false); fetchClientData(); setSnackbar({ open: true, message: 'Project Saved', severity: 'success' }); }} 
-                        onError={(msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' })} 
-                    />
+                    <AddProjectForm initialData={editData} selectedClient={customer} onSuccess={() => { setIsProjectModalOpen(false); fetchClientData(); }} onError={(msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' })} />
                 </DialogContent>
             </Dialog>
 
             <Dialog open={isInvoiceModalOpen} onClose={() => setIsInvoiceModalOpen(false)} fullWidth maxWidth="md">
                 <DialogContent sx={{ p: 4 }}>
-                    <AddBillingForm 
-                        initialData={editData} 
-                        selectedClient={customer} 
-                        customers={[customer]} 
-                        onSuccess={() => { setIsInvoiceModalOpen(false); fetchClientData(); }} 
-                        onError={(msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' })} 
-                    />
+                    <AddBillingForm initialData={editData} selectedClient={customer} customers={[customer]} onSuccess={() => { setIsInvoiceModalOpen(false); fetchClientData(); }} onError={(msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' })} />
                 </DialogContent>
             </Dialog>
 
-            <Dialog open={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} fullWidth maxWidth="sm">
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid #eee' }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>Record Payment Collection</Typography>
+            <Dialog open={isPaymentModalOpen} onClose={() => setIsPaymentModalOpen(false)} fullWidth maxWidth="md">
+                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid #eee' }}>
+                    <Typography sx={{ color: DARK_NAVY, fontWeight: 700 }}>Record Payment</Typography>
                     <IconButton size="small" onClick={() => setIsPaymentModalOpen(false)}><CloseIcon fontSize="small" /></IconButton>
                 </Stack>
                 <DialogContent sx={{ p: 3 }}>
-                    {paymentTarget && (
-                        <AddPaymentForm
-                            billingRecord={paymentTarget}
-                            onSuccess={() => { setIsPaymentModalOpen(false); fetchClientData(); setSnackbar({ open: true, message: 'Ledger updated', severity: 'success' }); }}
-                            onError={(msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' })}
-                        />
-                    )}
+                    <AddPaymentForm initialData={editData} billingRecord={paymentTarget} availableInvoices={billingRecords} onSuccess={() => { setIsPaymentModalOpen(false); fetchClientData(); }} onError={(msg: string) => setSnackbar({ open: true, message: msg, severity: 'error' })} />
                 </DialogContent>
             </Dialog>
 
             <Dialog open={deleteConfirm.open} onClose={() => setDeleteConfirm({ ...deleteConfirm, open: false })}>
-                <DialogTitle sx={{ fontWeight: 700 }}>Confirm Delete</DialogTitle>
-                <DialogContent><Typography variant="body2">Are you sure you want to remove this {deleteConfirm.type} record?</Typography></DialogContent>
+                <DialogTitle sx={{ fontWeight: 700, color: RUST }}>Confirm Delete</DialogTitle>
+                <DialogContent><Typography variant="body2">Are you sure? This action will immediately update the software ledger and cannot be undone.</Typography></DialogContent>
                 <DialogActions sx={{ p: 2 }}>
                     <Button onClick={() => setDeleteConfirm({ ...deleteConfirm, open: false })}>Cancel</Button>
-                    <Button onClick={handleActualDelete} variant="contained" sx={{ bgcolor: RUST }}>Delete</Button>
+                    <Button onClick={handleActualDelete} variant="contained" sx={{ bgcolor: RUST }}>Confirm</Button>
                 </DialogActions>
             </Dialog>
 

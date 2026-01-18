@@ -26,17 +26,26 @@ router.get('/', async (req, res) => {
 // --- POST: Create Project ---
 router.post('/', async (req, res) => {
   const { 
-    project_name, client_id, lead_staff_id, project_type, 
-    status, project_url, repo_url, tech_stack, notes 
+    project_name, 
+    description, // Added description
+    client_id, 
+    lead_staff_id, 
+    project_type, 
+    status, 
+    project_url, 
+    repo_url, 
+    tech_stack, 
+    notes 
   } = req.body;
 
   try {
     const sql = `INSERT INTO projects 
-      (project_name, client_id, lead_staff_id, project_type, status, project_url, repo_url, tech_stack, notes) 
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+      (project_name, description, client_id, lead_staff_id, project_type, status, project_url, repo_url, tech_stack, notes) 
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
     const [result] = await db.query(sql, [
       project_name, 
+      description || '', // Ensure it's not null if your SQL constraint is strict
       client_id, 
       lead_staff_id || null, 
       project_type, 
@@ -54,23 +63,22 @@ router.post('/', async (req, res) => {
   }
 });
 
-// --- PUT: Update Project (The Fix is Here) ---
+// --- PUT: Update Project ---
 router.put('/:id', async (req, res) => {
   const { id } = req.params;
   
   // 1. Create a clean copy of the data
   const dataToUpdate = { ...req.body };
 
-  // 2. Remove fields that DO NOT exist in the MySQL 'projects' table
-  // If these remain, the SQL query will fail.
+  // 2. Remove virtual/non-table fields
   delete dataToUpdate.id;
-  delete dataToUpdate.clientName;   // Virtual field from JOIN
-  delete dataToUpdate.leadStaffName; // Virtual field from JOIN
-  delete dataToUpdate.created_at;    // Usually auto-managed
-  delete dataToUpdate.attachments;   // Handled in separate table
+  delete dataToUpdate.clientName;   
+  delete dataToUpdate.leadStaffName; 
+  delete dataToUpdate.created_at;    
+  delete dataToUpdate.attachments;   
 
   try {
-    // 3. Perform the update using the cleaned object
+    // 3. Shorthand update: 'description' will be included if present in req.body
     const [result] = await db.query('UPDATE projects SET ? WHERE id = ?', [dataToUpdate, id]);
     
     if (result.affectedRows === 0) {
@@ -80,7 +88,6 @@ router.put('/:id', async (req, res) => {
     res.json({ success: true, message: "Project updated successfully" });
   } catch (err) {
     console.error("❌ PUT Project Error:", err.message);
-    // This catches the 'Data truncated' or 'Unknown column' errors
     res.status(500).json({ error: err.message });
   }
 });

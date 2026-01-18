@@ -84,6 +84,24 @@ export const BillingPage = () => {
 
   const columns = [
     {
+      id: 'created_at',
+      label: 'DATE',
+      render: (row: any) => {
+        if (!row.created_at) return '---';
+        const date = new Date(row.created_at);
+        return (
+          <Box>
+            <Typography sx={{ fontSize: '0.85rem', color: DARK_NAVY, fontWeight: 700 }}>
+              {date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.65rem' }}>
+              {date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+            </Typography>
+          </Box>
+        );
+      }
+    },
+    {
       id: 'doc_no',
       label: 'DOCUMENT',
       render: (row: any) => (
@@ -101,68 +119,57 @@ export const BillingPage = () => {
       id: 'client',
       label: 'CLIENT',
       render: (row: any) => (
-        <Typography sx={{ fontSize: '0.85rem', color: DARK_NAVY, fontWeight: 500 }}>
+        <Typography sx={{ fontSize: '0.85rem', color: DARK_NAVY, fontWeight: 600 }}>
           {row.clientName || '---'}
         </Typography>
       )
     },
     {
-  id: 'services',
-  label: 'SERVICE ITEMS',
-  render: (row: any) => {
-    // 1. Determine if the data is in row.items, row.services, or row.service_items
-    // 2. Parse it if it's currently a string
-    let items = [];
-    try {
-      const rawData = row.items || row.services || row.service_items || [];
-      items = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
-    } catch (e) {
-      items = [];
-    }
+      id: 'services',
+      label: 'SERVICE ITEMS',
+      render: (row: any) => {
+        let items = [];
+        try {
+          const rawData = row.items || row.services || row.service_items || [];
+          items = typeof rawData === 'string' ? JSON.parse(rawData) : rawData;
+        } catch (e) {
+          items = [];
+        }
 
-    if (!Array.isArray(items) || items.length === 0) {
-      return <Typography sx={{ fontSize: '0.8rem', color: 'text.disabled' }}>---</Typography>;
-    }
+        if (!Array.isArray(items) || items.length === 0) {
+          return <Typography sx={{ fontSize: '0.8rem', color: 'text.disabled' }}>---</Typography>;
+        }
 
-    return (
-      <Stack spacing={0.5} sx={{ py: 1 }}>
-        {items.map((item: any, index: number) => (
-          <Typography 
-            key={index} 
-            sx={{ 
-              fontSize: '0.75rem', 
-              color: DARK_NAVY,
-              display: 'flex',
-              alignItems: 'center',
-              '&::before': {
-                content: '"•"',
-                marginRight: '8px',
-                color: alpha(RUST, 0.5)
-              }
-            }}
-          >
-            {item.description}
-          </Typography>
-        ))}
-      </Stack>
-    );
-  }
-},
-    {
-      id: 'financials',
-      label: 'BILL TOTAL',
-      render: (row: any) => (
-        <Typography sx={{ fontSize: '0.85rem', fontWeight: 400 }}>
-          {row.currency} {Number(row.grand_total).toLocaleString()}
-        </Typography>
-      )
+        return (
+          <Stack spacing={0.5} sx={{ py: 1 }}>
+            {items.map((item: any, index: number) => (
+              <Typography 
+                key={index} 
+                sx={{ 
+                  fontSize: '0.75rem', 
+                  color: DARK_NAVY,
+                  display: 'flex',
+                  alignItems: 'center',
+                  '&::before': {
+                    content: '"•"',
+                    marginRight: '8px',
+                    color: alpha(RUST, 0.5)
+                  }
+                }}
+              >
+                {item.description}
+              </Typography>
+            ))}
+          </Stack>
+        );
+      }
     },
     {
-      id: 'paid',
-      label: 'PAID',
+      id: 'financials',
+      label: 'TOTAL',
       render: (row: any) => (
-        <Typography sx={{ fontSize: '0.85rem', color: SUCCESS_GREEN, fontWeight: 400 }}>
-          {Number(row.total_paid || 0).toLocaleString()}
+        <Typography sx={{ fontSize: '0.85rem', fontWeight: 700 }}>
+          {row.currency} {Number(row.grand_total).toLocaleString()}
         </Typography>
       )
     },
@@ -172,7 +179,7 @@ export const BillingPage = () => {
       render: (row: any) => {
         const balance = Number(row.grand_total) - Number(row.total_paid || 0);
         return (
-          <Typography sx={{ fontSize: '0.85rem', color: balance > 0 ? RUST : SUCCESS_GREEN, fontWeight: 400 }}>
+          <Typography sx={{ fontSize: '0.85rem', color: balance > 0 ? RUST : SUCCESS_GREEN, fontWeight: 700 }}>
             {row.currency} {balance.toLocaleString()}
           </Typography>
         );

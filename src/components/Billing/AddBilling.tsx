@@ -138,7 +138,7 @@ export const AddBillingForm: React.FC<AddBillingFormProps> = ({
           </Grid>
           <Grid size={{ xs: 6 }}>
             <TextField {...getFProps(false)} select label="Currency" value={form.currency} onChange={e => setForm({ ...form, currency: e.target.value })}>
-                {['KES', 'USD', 'EUR'].map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+                {['KES', 'USD'].map(c => <MenuItem key={c} value={c}>{c}</MenuItem>)}
             </TextField>
           </Grid>
           <Grid size={{ xs: 12 }}>
