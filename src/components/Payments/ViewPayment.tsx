@@ -57,21 +57,21 @@ export const ViewPayment: React.FC<ReceiptProps> = ({ data, onBack }) => {
 
     return (
         <Box sx={{ p: { xs: 1, sm: 2, md: 3 }, maxWidth: '950px', margin: 'auto' }}>
-            {/* Print Logic: Forces side-by-side layout and ensures footer stays at bottom */}
+            {/* Print Logic: Forces exactly 50/50 split and matches preview */}
             <GlobalStyles styles={{
                 '@media print': {
                     '@page': { size: 'A4', margin: '0mm' },
                     'body': { margin: '0px', WebkitPrintColorAdjust: 'exact' },
                     '.print-wrapper': { padding: '15mm 20mm !important', height: '297mm' },
                     '.footer-box': { position: 'absolute', bottom: '0mm', left: '0mm', width: '100%' },
-                    '.summary-container': { 
-                        display: 'flex !important', 
-                        flexDirection: 'row !important', 
-                        gap: '20px !important',
-                        alignItems: 'flex-start !important'
+                    '.summary-container': {
+                        display: 'flex !important',
+                        flexDirection: 'row !important',
+                        gap: '24px !important',
+                        alignItems: 'stretch !important'
                     },
-                    '.notes-box': { width: '58% !important', flex: '0 0 58% !important' },
-                    '.financials-box': { width: '40% !important', flex: '0 0 40% !important' }
+                    '.notes-box': { width: '50% !important', flex: '0 0 50% !important' },
+                    '.financials-box': { width: '50% !important', flex: '0 0 50% !important' }
                 }
             }} />
 
@@ -153,8 +153,8 @@ export const ViewPayment: React.FC<ReceiptProps> = ({ data, onBack }) => {
                                 CLIENT DETAILS
                             </Typography>
                             <Typography variant="h6" sx={{ color: DARK_NAVY, fontWeight: 800, mb: 0.5 }}>{data.clientName}</Typography>
-                            <Typography color="textSecondary" variant="body2">📧 {data.email || 'N/A'}</Typography>
-                            <Typography color="textSecondary" variant="body2">📞 {data.mobile || 'N/A'}</Typography>
+                            <Typography color="textSecondary" variant="body2" sx={{ fontWeight: 500 }}>📧 {data.email || 'N/A'}</Typography>
+                            <Typography color="textSecondary" variant="body2" sx={{ fontWeight: 500 }}>📞 {data.mobile || 'N/A'}</Typography>
                         </Grid>
                         <Grid size={{ xs: 5 }} sx={{ textAlign: 'right' }}>
                             <Typography variant="caption" sx={{ color: PRIMARY_RUST, fontWeight: 800, display: 'block', mb: 1, letterSpacing: '0.1em' }}>
@@ -209,18 +209,22 @@ export const ViewPayment: React.FC<ReceiptProps> = ({ data, onBack }) => {
                         </Table>
                     </TableContainer>
 
-                    {/* Notes and Financials Row (Forced Side-by-Side in Print) */}
-                    <Box className="summary-container" sx={{ display: 'flex', gap: 4, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
-                        <Box className="notes-box" sx={{ flexGrow: 1 }}>
+                    {/* Notes and Financials Row (Forced 50/50 split) */}
+                    <Box className="summary-container" sx={{ display: 'flex', gap: 3, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+                        {/* Left Side (50%) */}
+                        <Box className="notes-box" sx={{ width: { xs: '100%', sm: '50%' } }}>
                             <Box sx={{ p: 2, bgcolor: alpha(PRIMARY_RUST, 0.02), borderLeft: `3px solid ${PRIMARY_RUST}`, height: '100%' }}>
                                 <Typography variant="caption" sx={{ color: PRIMARY_RUST, fontWeight: 800, display: 'block', mb: 1 }}>NOTES</Typography>
                                 <Typography variant="body2" sx={{ fontSize: '0.75rem', color: '#475569', lineHeight: 1.6 }}>
-                                    {data.notes || 'Payment received with thanks. Thank you for the opportunity to serve your business.'}
+                                    {data.notes}
                                 </Typography>
+                                <br></br>
+                                <Typography variant="body2" sx={{ fontSize: '0.75rem', color: '#b52841', lineHeight: 1.6 }}>Payment received with thanks. Thank you for the opportunity to serve your business.</Typography>
                             </Box>
                         </Box>
-                        
-                        <Box className="financials-box" sx={{ width: { xs: '100%', sm: '350px' } }}>
+
+                        {/* Right Side (50%) */}
+                        <Box className="financials-box" sx={{ width: { xs: '100%', sm: '50%' } }}>
                             <Stack spacing={1.5} sx={{ p: 2, bgcolor: alpha(DARK_NAVY, 0.01), borderRadius: '8px', border: `1px solid ${alpha(DARK_NAVY, 0.05)}` }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                                     <Typography sx={{ fontSize: '0.75rem', color: 'textSecondary', fontWeight: 600 }}>TOTAL INVOICE</Typography>
@@ -252,7 +256,7 @@ export const ViewPayment: React.FC<ReceiptProps> = ({ data, onBack }) => {
                     </Box>
                 </Box>
 
-                {/* Footer */}
+                {/* Footer Section */}
                 <Box className="footer-box">
                     <Box sx={{ px: { xs: 2, sm: 4, md: 6 }, pb: 4 }}>
                         <Typography sx={{ textAlign: 'center', fontSize: '0.8rem', color: alpha(DARK_NAVY, 0.6), mb: 3, fontStyle: 'italic', fontWeight: 600 }}>
