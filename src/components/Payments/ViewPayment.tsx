@@ -3,7 +3,7 @@ import {
     Box, Typography, Grid, Table, TableBody,
     TableCell, TableContainer, TableHead, TableRow,
     Divider, Button, Stack, Paper, IconButton,
-    alpha, useTheme, useMediaQuery
+    alpha, useTheme, useMediaQuery, GlobalStyles
 } from '@mui/material';
 import {
     ArrowBack as ArrowBackIcon,
@@ -38,11 +38,7 @@ export const ViewPayment: React.FC<ReceiptProps> = ({ data, onBack }) => {
     const financialMetrics = useMemo(() => {
         const totalInvoice = Number(data.billing_grand_total || data.grand_total) || 0;
         const paidNow = Number(data.amount_paid) || 0;
-
-        // running_total_paid includes paidNow.
         const totalPaidUpToThisPoint = Number(data.running_total_paid) || paidNow;
-
-        // Previous payments is the total paid up to now, minus the current transaction
         const totalPreviousPayments = totalPaidUpToThisPoint - paidNow;
         const outstandingBalanceAfterThis = totalInvoice - totalPaidUpToThisPoint;
 
@@ -61,6 +57,24 @@ export const ViewPayment: React.FC<ReceiptProps> = ({ data, onBack }) => {
 
     return (
         <Box sx={{ p: { xs: 1, sm: 2, md: 3 }, maxWidth: '950px', margin: 'auto' }}>
+            {/* Print Logic: Forces side-by-side layout and ensures footer stays at bottom */}
+            <GlobalStyles styles={{
+                '@media print': {
+                    '@page': { size: 'A4', margin: '0mm' },
+                    'body': { margin: '0px', WebkitPrintColorAdjust: 'exact' },
+                    '.print-wrapper': { padding: '15mm 20mm !important', height: '297mm' },
+                    '.footer-box': { position: 'absolute', bottom: '0mm', left: '0mm', width: '100%' },
+                    '.summary-container': { 
+                        display: 'flex !important', 
+                        flexDirection: 'row !important', 
+                        gap: '20px !important',
+                        alignItems: 'flex-start !important'
+                    },
+                    '.notes-box': { width: '58% !important', flex: '0 0 58% !important' },
+                    '.financials-box': { width: '40% !important', flex: '0 0 40% !important' }
+                }
+            }} />
+
             <Stack
                 direction="row"
                 justifyContent="space-between"
@@ -70,7 +84,7 @@ export const ViewPayment: React.FC<ReceiptProps> = ({ data, onBack }) => {
                 <Button
                     startIcon={<ArrowBackIcon />}
                     onClick={onBack}
-                    sx={{ color: DARK_NAVY, textTransform: 'none' }}
+                    sx={{ color: DARK_NAVY, textTransform: 'none', fontWeight: 700 }}
                 >
                     {isMobile ? 'Back' : 'Back to Payments'}
                 </Button>
@@ -90,7 +104,8 @@ export const ViewPayment: React.FC<ReceiptProps> = ({ data, onBack }) => {
                             borderRadius: '8px',
                             textTransform: 'none',
                             px: { xs: 2, sm: 3 },
-                            boxShadow: 'none'
+                            boxShadow: 'none',
+                            fontWeight: 700
                         }}
                     >
                         {isMobile ? 'PDF' : 'Export Receipt'}
@@ -100,9 +115,8 @@ export const ViewPayment: React.FC<ReceiptProps> = ({ data, onBack }) => {
 
             <Paper
                 ref={receiptRef}
+                elevation={0}
                 sx={{
-                    p: { xs: 2, sm: 4, md: 6 },
-                    pb: '100px',
                     borderRadius: '0px',
                     minHeight: '1123px',
                     position: 'relative',
@@ -111,64 +125,67 @@ export const ViewPayment: React.FC<ReceiptProps> = ({ data, onBack }) => {
                     flexDirection: 'column',
                     overflow: 'hidden',
                     boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-                    '@media print': { margin: 0, boxShadow: 'none', p: '15mm' }
+                    '@media print': { margin: 0, boxShadow: 'none' }
                 }}
             >
-                <Box sx={{ flexGrow: 1 }}>
+                <Box className="print-wrapper" sx={{ flexGrow: 1, p: { xs: 2, sm: 4, md: 6 } }}>
+                    {/* Header */}
                     <Grid container spacing={3} alignItems="center" sx={{ mb: 4 }}>
-                        <Grid size={{ xs: 12, sm: 7 }}>
-                            <Box component="img" src="/logo.png" alt="Logo" sx={{ width: { xs: 250, sm: 300, md: 400 }, height: 'auto' }} />
+                        <Grid size={{ xs: 7 }}>
+                            <Box component="img" src="/logo.png" alt="Logo" sx={{ width: { xs: 250, sm: 300, md: 380 }, height: 'auto' }} />
                         </Grid>
-                        <Grid size={{ xs: 12, sm: 5 }} sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
-                            <Typography variant="h5" sx={{ color: PRIMARY_RUST, letterSpacing: '0.1em', mb: 0.5 }}>
+                        <Grid size={{ xs: 5 }} sx={{ textAlign: 'right' }}>
+                            <Typography variant="h5" sx={{ color: PRIMARY_RUST, fontWeight: 900, letterSpacing: '0.05em', mb: 0.5 }}>
                                 OFFICIAL RECEIPT
                             </Typography>
-                            <Typography variant="body2" sx={{ color: 'textSecondary' }}>
+                            <Typography variant="body2" sx={{ color: 'textSecondary', fontWeight: 600 }}>
                                 REF: {data.transaction_reference || 'N/A'}
                             </Typography>
                         </Grid>
                     </Grid>
 
-                    <Divider sx={{ mb: 4, borderColor: alpha(PRIMARY_RUST, 0.1) }} />
+                    <Divider sx={{ mb: 4, borderColor: alpha(PRIMARY_RUST, 0.2) }} />
 
+                    {/* Client & Date Info */}
                     <Grid container spacing={3} sx={{ mb: 6 }}>
-                        <Grid size={{ xs: 12, sm: 7 }}>
-                            <Typography variant="caption" sx={{ color: 'textSecondary', display: 'block', mb: 1, letterSpacing: '0.1em' }}>
+                        <Grid size={{ xs: 7 }}>
+                            <Typography variant="caption" sx={{ color: PRIMARY_RUST, fontWeight: 800, display: 'block', mb: 1, letterSpacing: '0.1em' }}>
                                 CLIENT DETAILS
                             </Typography>
-                            <Typography variant="h6" sx={{ color: DARK_NAVY, mb: 0.5 }}>{data.clientName}</Typography>
+                            <Typography variant="h6" sx={{ color: DARK_NAVY, fontWeight: 800, mb: 0.5 }}>{data.clientName}</Typography>
                             <Typography color="textSecondary" variant="body2">📧 {data.email || 'N/A'}</Typography>
                             <Typography color="textSecondary" variant="body2">📞 {data.mobile || 'N/A'}</Typography>
                         </Grid>
-                        <Grid size={{ xs: 12, sm: 5 }} sx={{ textAlign: { xs: 'left', sm: 'right' } }}>
-                            <Typography variant="caption" sx={{ color: 'textSecondary', display: 'block', mb: 1, letterSpacing: '0.1em' }}>
+                        <Grid size={{ xs: 5 }} sx={{ textAlign: 'right' }}>
+                            <Typography variant="caption" sx={{ color: PRIMARY_RUST, fontWeight: 800, display: 'block', mb: 1, letterSpacing: '0.1em' }}>
                                 PAYMENT DATE
                             </Typography>
-                            <Typography sx={{ fontSize: '1rem', color: DARK_NAVY }}>
+                            <Typography sx={{ fontSize: '1rem', color: DARK_NAVY, fontWeight: 700 }}>
                                 {new Date(data.payment_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
                             </Typography>
                         </Grid>
                     </Grid>
 
+                    {/* Transaction Table */}
                     <TableContainer sx={{ mb: 4, borderRadius: '4px', border: `1px solid ${alpha(DARK_NAVY, 0.1)}` }}>
                         <Table>
                             <TableHead>
                                 <TableRow sx={{ bgcolor: PRIMARY_RUST }}>
-                                    <TableCell sx={{ color: '#ffffff', fontSize: '0.75rem', borderBottom: 'none' }}>INVOICE</TableCell>
-                                    <TableCell sx={{ color: '#ffffff', fontSize: '0.75rem', borderBottom: 'none' }}>SERVICE DESCRIPTION</TableCell>
-                                    <TableCell sx={{ color: '#ffffff', fontSize: '0.75rem', borderBottom: 'none' }}>PAYMENT MODE</TableCell>
-                                    <TableCell align="right" sx={{ color: '#ffffff', fontSize: '0.75rem', borderBottom: 'none' }}>AMOUNT PAID</TableCell>
+                                    <TableCell sx={{ color: '#ffffff', fontSize: '0.75rem', fontWeight: 800, borderBottom: 'none' }}>INVOICE</TableCell>
+                                    <TableCell sx={{ color: '#ffffff', fontSize: '0.75rem', fontWeight: 800, borderBottom: 'none' }}>SERVICE DESCRIPTION</TableCell>
+                                    <TableCell sx={{ color: '#ffffff', fontSize: '0.75rem', fontWeight: 800, borderBottom: 'none' }}>MODE</TableCell>
+                                    <TableCell align="right" sx={{ color: '#ffffff', fontSize: '0.75rem', fontWeight: 800, borderBottom: 'none' }}>AMOUNT PAID</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
                                 <TableRow>
                                     <TableCell sx={{ verticalAlign: 'top', pt: 3 }}>
-                                        <Typography sx={{ fontSize: '0.85rem', color: PRIMARY_RUST, fontWeight: 600 }}>{data.doc_no}</Typography>
+                                        <Typography sx={{ fontSize: '0.85rem', color: PRIMARY_RUST, fontWeight: 800 }}>{data.doc_no}</Typography>
                                     </TableCell>
                                     <TableCell sx={{ py: 3 }}>
                                         {services.map((s: any, i: number) => (
                                             <Box key={i} sx={{ mb: 1 }}>
-                                                <Typography sx={{ fontSize: '0.85rem', display: 'block', color: DARK_NAVY }}>
+                                                <Typography sx={{ fontSize: '0.85rem', display: 'block', color: DARK_NAVY, fontWeight: 600 }}>
                                                     • {s.description || s.item_name}
                                                 </Typography>
                                                 {s.quantity && (
@@ -180,10 +197,10 @@ export const ViewPayment: React.FC<ReceiptProps> = ({ data, onBack }) => {
                                         ))}
                                     </TableCell>
                                     <TableCell sx={{ verticalAlign: 'top', pt: 3 }}>
-                                        <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>{data.payment_method?.toUpperCase() || 'CASH'}</Typography>
+                                        <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary', fontWeight: 600 }}>{data.payment_method?.toUpperCase() || 'CASH'}</Typography>
                                     </TableCell>
                                     <TableCell align="right" sx={{ verticalAlign: 'top', pt: 3 }}>
-                                        <Typography sx={{ fontSize: '0.9rem', color: DARK_NAVY, fontWeight: 600 }}>
+                                        <Typography sx={{ fontSize: '0.9rem', color: DARK_NAVY, fontWeight: 800 }}>
                                             {data.currency || 'KES'} {financialMetrics.paidNow.toLocaleString()}
                                         </Typography>
                                     </TableCell>
@@ -192,71 +209,60 @@ export const ViewPayment: React.FC<ReceiptProps> = ({ data, onBack }) => {
                         </Table>
                     </TableContainer>
 
-                    <Grid container spacing={4}>
-                        <Grid size={{ xs: 12, md: 7 }}>
-                            <Box sx={{ p: 2, bgcolor: alpha(PRIMARY_RUST, 0.02), borderLeft: `2px solid ${PRIMARY_RUST}` }}>
-                                <Typography variant="caption" sx={{ color: PRIMARY_RUST, display: 'block', mb: 0.5 }}>NOTES</Typography>
-                                <Typography variant="body2" sx={{ fontSize: '0.75rem', color: 'textSecondary' }}>
-                                    {data.notes || 'Payment received with thanks. Thank you for the opportunity to serve your business'}
+                    {/* Notes and Financials Row (Forced Side-by-Side in Print) */}
+                    <Box className="summary-container" sx={{ display: 'flex', gap: 4, flexWrap: { xs: 'wrap', sm: 'nowrap' } }}>
+                        <Box className="notes-box" sx={{ flexGrow: 1 }}>
+                            <Box sx={{ p: 2, bgcolor: alpha(PRIMARY_RUST, 0.02), borderLeft: `3px solid ${PRIMARY_RUST}`, height: '100%' }}>
+                                <Typography variant="caption" sx={{ color: PRIMARY_RUST, fontWeight: 800, display: 'block', mb: 1 }}>NOTES</Typography>
+                                <Typography variant="body2" sx={{ fontSize: '0.75rem', color: '#475569', lineHeight: 1.6 }}>
+                                    {data.notes || 'Payment received with thanks. Thank you for the opportunity to serve your business.'}
                                 </Typography>
                             </Box>
-                        </Grid>
-                        <Grid size={{ xs: 12, md: 5 }}>
-                            <Stack spacing={1.5} sx={{ p: 2, bgcolor: alpha(DARK_NAVY, 0.01), borderRadius: '8px' }}>
+                        </Box>
+                        
+                        <Box className="financials-box" sx={{ width: { xs: '100%', sm: '350px' } }}>
+                            <Stack spacing={1.5} sx={{ p: 2, bgcolor: alpha(DARK_NAVY, 0.01), borderRadius: '8px', border: `1px solid ${alpha(DARK_NAVY, 0.05)}` }}>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <Typography sx={{ fontSize: '0.75rem', color: 'textSecondary' }}>TOTAL INVOICE</Typography>
-                                    <Typography sx={{ fontSize: '0.75rem', color: DARK_NAVY }}>
+                                    <Typography sx={{ fontSize: '0.75rem', color: 'textSecondary', fontWeight: 600 }}>TOTAL INVOICE</Typography>
+                                    <Typography sx={{ fontSize: '0.75rem', color: DARK_NAVY, fontWeight: 700 }}>
                                         {data.currency || 'KES'} {financialMetrics.totalInvoice.toLocaleString()}
                                     </Typography>
                                 </Box>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <Typography sx={{ fontSize: '0.75rem', color: 'textSecondary' }}>PREVIOUS PAYMENTS</Typography>
-                                    <Typography sx={{ fontSize: '0.75rem', color: DARK_NAVY }}>
+                                    <Typography sx={{ fontSize: '0.75rem', color: 'textSecondary', fontWeight: 600 }}>PREVIOUS PAYMENTS</Typography>
+                                    <Typography sx={{ fontSize: '0.75rem', color: DARK_NAVY, fontWeight: 700 }}>
                                         {data.currency || 'KES'} {financialMetrics.totalPreviousPayments.toLocaleString()}
                                     </Typography>
                                 </Box>
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                    <Typography sx={{ fontSize: '0.75rem', color: PRIMARY_RUST, fontWeight: 600 }}>CURRENT PAYMENT</Typography>
-                                    <Typography sx={{ fontSize: '0.75rem', color: PRIMARY_RUST, fontWeight: 600 }}>
+                                    <Typography sx={{ fontSize: '0.75rem', color: PRIMARY_RUST, fontWeight: 800 }}>CURRENT PAYMENT</Typography>
+                                    <Typography sx={{ fontSize: '0.75rem', color: PRIMARY_RUST, fontWeight: 800 }}>
                                         {data.currency || 'KES'} {financialMetrics.paidNow.toLocaleString()}
                                     </Typography>
                                 </Box>
                                 <Divider />
                                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <Typography sx={{ fontSize: '0.75rem', color: DARK_NAVY, fontWeight: 600 }}>OUTSTANDING BALANCE</Typography>
-                                    <Typography sx={{ fontSize: '1.1rem', color: DARK_NAVY, fontWeight: 700 }}>
+                                    <Typography sx={{ fontSize: '0.75rem', color: DARK_NAVY, fontWeight: 900 }}>OUTSTANDING BALANCE</Typography>
+                                    <Typography sx={{ fontSize: '1.1rem', color: DARK_NAVY, fontWeight: 900 }}>
                                         {data.currency || 'KES'} {financialMetrics.outstandingBalanceAfterThis.toLocaleString()}
                                     </Typography>
                                 </Box>
                             </Stack>
-                        </Grid>
-                    </Grid>
+                        </Box>
+                    </Box>
                 </Box>
 
-                {/* BOTTOM FIXED FOOTER */}
-                <Box sx={{
-                    position: 'absolute',
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    width: '100%',
-                    bgcolor: 'white'
-                }}>
+                {/* Footer */}
+                <Box className="footer-box">
                     <Box sx={{ px: { xs: 2, sm: 4, md: 6 }, pb: 4 }}>
-                        <Typography sx={{ textAlign: 'center', fontSize: '0.8rem', color: alpha(DARK_NAVY, 0.6), mb: 3, fontStyle: 'italic' }}>
+                        <Typography sx={{ textAlign: 'center', fontSize: '0.8rem', color: alpha(DARK_NAVY, 0.6), mb: 3, fontStyle: 'italic', fontWeight: 600 }}>
                             "Experts in High-Precision Software Engineering"
                         </Typography>
                         <Divider sx={{ mb: 2, opacity: 0.5 }} />
                         <Grid container spacing={2}>
-                            <Grid size={{ xs: 12, sm: 4 }}>
-                                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, textAlign: { xs: 'center', sm: 'left' }, color: DARK_NAVY }}>📞 0711927833</Typography>
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 4 }}>
-                                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, textAlign: 'center', color: DARK_NAVY }}>📧 business@brookstack.com</Typography>
-                            </Grid>
-                            <Grid size={{ xs: 12, sm: 4 }}>
-                                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, textAlign: { xs: 'center', sm: 'right' }, color: DARK_NAVY }}>🌐 brookstack.com</Typography>
-                            </Grid>
+                            <Grid size={{ xs: 4 }}><Typography sx={{ fontSize: '0.7rem', fontWeight: 800, color: DARK_NAVY }}>📞 0711927833</Typography></Grid>
+                            <Grid size={{ xs: 4 }}><Typography sx={{ fontSize: '0.7rem', fontWeight: 800, textAlign: 'center', color: DARK_NAVY }}>📧 business@brookstack.com</Typography></Grid>
+                            <Grid size={{ xs: 4 }}><Typography sx={{ fontSize: '0.7rem', fontWeight: 800, textAlign: 'right', color: DARK_NAVY }}>🌐 www.brookstack.com</Typography></Grid>
                         </Grid>
                     </Box>
                     <Box sx={{ height: 10, bgcolor: PRIMARY_RUST, width: '100%' }} />
