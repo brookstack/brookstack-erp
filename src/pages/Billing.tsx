@@ -18,6 +18,7 @@ const RUST = '#b52841';
 const DARK_NAVY = '#1a202c';
 const SUCCESS_GREEN = '#198754';
 const WARNING_ORANGE = '#f39c12';
+const INFO_BLUE = '#0288d1';
 
 export const BillingPage = () => {
   const [billingRecords, setBillingRecords] = useState<any[]>([]);
@@ -107,10 +108,10 @@ export const BillingPage = () => {
       render: (row: any) => (
         <Box>
           <Typography sx={{ fontSize: '0.75rem', color: RUST, fontWeight: 700 }}>
-            {row.doc_no || 'PENDING'}
+            {row.doc_no || 'Pending'}
           </Typography>
-          <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600 }}>
-            {row.type?.toUpperCase()}
+          <Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, textTransform: 'capitalize' }}>
+            {row.type?.toLowerCase()}
           </Typography>
         </Box>
       )
@@ -191,15 +192,19 @@ export const BillingPage = () => {
       render: (row: any) => {
         const totalPaid = Number(row.total_paid || 0);
         const grandTotal = Number(row.grand_total);
+        const isQuotation = row.type?.toLowerCase() === 'quotation';
         
-        let label = 'UNPAID';
+        let label = 'Unpaid';
         let color = RUST;
 
-        if (totalPaid >= grandTotal && grandTotal > 0) {
-          label = 'FULLY PAID';
+        if (isQuotation) {
+          label = 'Quotation';
+          color = INFO_BLUE;
+        } else if (totalPaid >= grandTotal && grandTotal > 0) {
+          label = 'Fully paid';
           color = SUCCESS_GREEN;
         } else if (totalPaid > 0) {
-          label = 'PARTIAL';
+          label = 'Partial';
           color = WARNING_ORANGE;
         }
 
@@ -212,7 +217,9 @@ export const BillingPage = () => {
                 color: color, 
                 fontSize: '0.65rem',
                 fontWeight: 800,
-                borderRadius: '4px' 
+                borderRadius: '4px',
+                // This ensures sentence case formatting on the Chip itself
+                textTransform: 'none' 
             }}
           />
         );
@@ -252,7 +259,8 @@ export const BillingPage = () => {
           }}
           additionalActions={(row: any) => {
             const isPaid = Number(row.total_paid || 0) >= Number(row.grand_total);
-            return row.type === 'invoice' && !isPaid ? ({
+            const isQuotation = row.type?.toLowerCase() === 'quotation';
+            return !isQuotation && !isPaid ? ({
               label: 'Pay',  
               icon: <PaymentOutlinedIcon sx={{ fontSize: '1.1rem' }} />,   
               onClick: (row) => { setPaymentTarget(row); setPaymentModalOpen(true); }

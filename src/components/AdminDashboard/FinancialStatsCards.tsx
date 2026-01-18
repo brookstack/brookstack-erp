@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Paper, Box, Typography, Grid, alpha, Stack, Divider, CircularProgress } from '@mui/material';
+import { Paper, Box, Typography, Grid, alpha, Stack, Divider } from '@mui/material';
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
 import PriceCheckIcon from '@mui/icons-material/PriceCheck';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
@@ -36,13 +36,16 @@ export const FinancialStatsSection = () => {
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
         // Helper to aggregate totals by currency and date
-        const getAggregatedTotals = (data: any[], amountKey: string): MetricStats => {
+        const getAggregatedTotals = (data: any[], amountKey: string, filterInvoicesOnly = false): MetricStats => {
           const result: MetricStats = { 
             cumulative: { KES: 0, USD: 0 }, 
             thisMonth: { KES: 0, USD: 0 } 
           };
           
           data.forEach(item => {
+            // Filter logic: If calculating outstanding/billed, we ignore quotations
+            if (filterInvoicesOnly && item.type?.toLowerCase() !== 'invoice') return;
+
             let rawCurr = (item.currency || 'KES').toUpperCase();
             if (rawCurr === 'KSH') rawCurr = 'KES';
             
@@ -60,18 +63,21 @@ export const FinancialStatsSection = () => {
           return result;
         };
 
-        const billedAmount = getAggregatedTotals(bills, 'grand_total');
+        // 1. Calculate Billed (Only include Invoices)
+        const billedAmount = getAggregatedTotals(bills, 'grand_total', true);
+        
+        // 2. Calculate Paid (Payments are naturally linked to Invoices)
         const paidAmount = getAggregatedTotals(payments, 'amount_paid');
         
-        // FIX: Calculate Outstanding as the actual remaining balance
+        // 3. Outstanding = Total Invoiced - Total Paid
         const outstandingAmount: MetricStats = {
           cumulative: {
-            KES: billedAmount.cumulative.KES - paidAmount.cumulative.KES,
-            USD: billedAmount.cumulative.USD - paidAmount.cumulative.USD,
+            KES: Math.max(0, billedAmount.cumulative.KES - paidAmount.cumulative.KES),
+            USD: Math.max(0, billedAmount.cumulative.USD - paidAmount.cumulative.USD),
           },
           thisMonth: {
-            KES: billedAmount.thisMonth.KES - paidAmount.thisMonth.KES,
-            USD: billedAmount.thisMonth.USD - paidAmount.thisMonth.USD,
+            KES: Math.max(0, billedAmount.thisMonth.KES - paidAmount.thisMonth.KES),
+            USD: Math.max(0, billedAmount.thisMonth.USD - paidAmount.thisMonth.USD),
           }
         };
 
@@ -91,7 +97,7 @@ export const FinancialStatsSection = () => {
             path: '/payments'
           },
           { 
-            label: 'Outstanding', 
+            label: 'Outstanding Invoices', 
             icon: <ErrorOutlineIcon />, 
             color: RUST, 
             stats: outstandingAmount,
@@ -109,11 +115,8 @@ export const FinancialStatsSection = () => {
   }, []);
 
   const handleNavigation = (item: any) => {
-    if (item.query) {
-      navigate(`${item.path}?${item.query}`);
-    } else {
-      navigate(item.path);
-    }
+    const target = item.query ? `${item.path}?${item.query}` : item.path;
+    navigate(target);
   };
 
   return (
@@ -139,7 +142,7 @@ export const FinancialStatsSection = () => {
               <Box sx={{ p: 0.7, borderRadius: '6px', bgcolor: alpha(stat.color, 0.1), color: stat.color, display: 'flex' }}>
                 {React.cloneElement(stat.icon, { sx: { fontSize: '1rem' } })}
               </Box>
-              <Typography sx={{ fontSize: '0.7rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase' }}>
+              <Typography sx={{ fontSize: '0.7rem', fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                 {stat.label}
               </Typography>
             </Stack>

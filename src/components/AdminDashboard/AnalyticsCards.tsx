@@ -28,12 +28,21 @@ export const AnalyticsSection = () => {
           axios.get(`${API_BASE_URL}/payments`)
         ]);
 
-        const currentYear = 2026;
-        const bills = billRes.data || [];
+        // Dynamically set current year
+        const currentYear = new Date().getFullYear();
+        const allBills = billRes.data || [];
+        const allPayments = payRes.data || [];
+        
+        // Filter for invoices only
+        const invoicesOnly = allBills.filter((b: any) => b.type?.toLowerCase() === 'invoice');
 
-        // 1. SOLID PIE CHART LOGIC (Summing Grand Totals)
+        // 1. PIE CHART: Cumulative Invoice Status (Current Year Only)
+        const currentYearInvoices = invoicesOnly.filter((b: any) => 
+          new Date(b.created_at).getFullYear() === currentYear
+        );
+
         const getSumByStatus = (keywords: string[]) => {
-          return bills
+          return currentYearInvoices
             .filter((b: any) => {
               const s = (b.status || '').toLowerCase();
               return keywords.some(kw => s.includes(kw));
@@ -42,8 +51,8 @@ export const AnalyticsSection = () => {
         };
 
         const statusData = [
-          { name: 'Fully Paid', value: getSumByStatus(['paid']), color: SUCCESS_GREEN },
-          { name: 'Partial', value: bills
+          { name: 'Fully Paid', value: getSumByStatus(['fully paid', 'paid']), color: SUCCESS_GREEN },
+          { name: 'Partial', value: currentYearInvoices
               .filter((b: any) => {
                 const s = (b.status || '').toLowerCase();
                 return s.includes('partial') && !s.includes('fully');
@@ -54,10 +63,10 @@ export const AnalyticsSection = () => {
           { name: 'Unpaid', value: getSumByStatus(['unpaid', 'pending']), color: RUST },
         ];
 
-        // 2. YEARLY DATA LOGIC (Jan - Dec)
+        // 2. TREND DATA: Filtered by Current Year inside helper
         const clientsByMonth = processYearlyData(custRes.data || [], 'created_at', 'count', currentYear);
-        const billedByMonth = processYearlyData(bills, 'created_at', 'grand_total', currentYear);
-        const collectedByMonth = processYearlyData(payRes.data || [], 'payment_date', 'amount_paid', currentYear);
+        const billedByMonth = processYearlyData(invoicesOnly, 'created_at', 'grand_total', currentYear);
+        const collectedByMonth = processYearlyData(allPayments, 'payment_date', 'amount_paid', currentYear);
         
         const efficiency = billedByMonth.map((b, index) => ({
           month: b.month,
@@ -79,20 +88,17 @@ export const AnalyticsSection = () => {
     fetchAnalytics();
   }, []);
 
-  // Fixes TS(2322) by allowing value to be number | undefined
-  const currencyFormatter = (value: number | undefined) => 
-    value !== undefined ? value.toLocaleString(undefined, { minimumFractionDigits: 0 }) : '0';
+  const currencyFormatter = (v: any) => `KES ${Number(v).toLocaleString()}`;
 
   const CustomPieTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
-      const val = payload[0].value;
       return (
         <Paper sx={{ p: 1.5, border: 'none', boxShadow: '0 4px 20px rgba(0,0,0,0.1)', borderRadius: '12px' }}>
           <Typography sx={{ fontSize: '0.65rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', mb: 0.5 }}>
             {payload[0].name}
           </Typography>
           <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: payload[0].payload.color }}>
-             KES {typeof val === 'number' ? val.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '0.00'}
+             {currencyFormatter(payload[0].value)}
           </Typography>
         </Paper>
       );
@@ -102,26 +108,28 @@ export const AnalyticsSection = () => {
 
   if (loading) return <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}><CircularProgress /></Box>;
 
+  const currentYearLabel = new Date().getFullYear();
+
   return (
     <Grid container spacing={2}>
-      {/* 1. Client Growth Bar Chart */}
+      {/* 1. Client Growth */}
       <Grid size={{ xs: 12, md: 4 }}>
-        <ChartCard title="2026 Client Growth">
+        <ChartCard title={`${currentYearLabel} Client Growth`}>
           <ResponsiveContainer width="100%" height={220}>
             <BarChart data={data.clients}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-              <Tooltip cursor={{ fill: '#f8fafc' }} formatter={(v: any) => [v, 'Clients']} />
+              <Tooltip cursor={{ fill: '#f8fafc' }} formatter={(v: any) => [v, 'New Clients']} />
               <Bar dataKey="value" fill={LEAD_BLUE} radius={[4, 4, 0, 0]} barSize={15} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
       </Grid>
 
-      {/* 2. SOLID Pie Chart (Actual Amounts) */}
+      {/* 2. Invoice Status Pie */}
       <Grid size={{ xs: 12, md: 4 }}>
-        <ChartCard title="Invoice Status Value">
+        <ChartCard title={`${currentYearLabel} Invoice Status`}>
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie 
@@ -143,15 +151,15 @@ export const AnalyticsSection = () => {
         </ChartCard>
       </Grid>
 
-      {/* 3. Cash Flow Trend Line Chart */}
+      {/* 3. Cash Flow Trend */}
       <Grid size={{ xs: 12, md: 4 }}>
-        <ChartCard title="2026 Cash Flow Trend">
+        <ChartCard title={`${currentYearLabel} Cash Flow Trend`}>
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={data.efficiency}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
               <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
               <YAxis tick={{ fontSize: 10 }} axisLine={false} tickLine={false} />
-              <Tooltip formatter={currencyFormatter} />
+              <Tooltip formatter={(v: any) => [currencyFormatter(v), '']} />
               <Legend verticalAlign="top" align="right" wrapperStyle={{ fontSize: '10px' }} />
               <Line name="Billed" type="monotone" dataKey="billed" stroke={PURPLE} strokeWidth={2} dot={{ r: 3 }} />
               <Line name="Collected" type="monotone" dataKey="collected" stroke={SUCCESS_GREEN} strokeWidth={2} dot={{ r: 3 }} />
@@ -163,10 +171,12 @@ export const AnalyticsSection = () => {
   );
 };
 
-// HELPER: Groups data by month for the target year (Full 12 Months)
 const processYearlyData = (items: any[], dateField: string, valueField: string | 'count', targetYear: number) => {
   const grouped = items.reduce((acc: any, item: any) => {
-    const date = new Date(item[dateField]);
+    const dateStr = item[dateField] || item.created_at || item.payment_date || item.date_added;
+    if (!dateStr) return acc;
+    
+    const date = new Date(dateStr);
     if (date.getFullYear() === targetYear) {
       const monthIdx = date.getMonth();
       const val = valueField === 'count' ? 1 : Number(item[valueField] || 0);

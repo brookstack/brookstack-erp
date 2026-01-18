@@ -260,7 +260,8 @@ export const AddCustomerForm: React.FC<FormProps> = ({ onSuccess, initialData })
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField {...fieldProps} select name="status" label="Client Status" value={formData.status}>
                 <MenuItem value="active" sx={{ fontSize: '0.85rem' }}>Active</MenuItem>
-                 <MenuItem value="lead" sx={{ fontSize: '0.85rem' }}>Lead</MenuItem>
+                <MenuItem value="lead" sx={{ fontSize: '0.85rem' }}>Lead</MenuItem>
+                <MenuItem value="inactive" sx={{ fontSize: '0.85rem' }}>Inactive</MenuItem>
               </TextField>
             </Grid>
             <Grid size={{ xs: 12 }}>

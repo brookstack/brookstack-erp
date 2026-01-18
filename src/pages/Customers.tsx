@@ -152,6 +152,7 @@ export const CustomersPage = () => {
                 const statusConfig: any = {
                     active: { color: '#2ecc71', bg: alpha('#2ecc71', 0.1) },
                     lead: { color: '#0ea5e9', bg: alpha('#0ea5e9', 0.1) },
+                    inactive: { color: '#b52841', bg: alpha('#b52841', 0.1) },
                 };
                 const config = statusConfig[row.status?.toLowerCase()] || { color: '#8a92a6', bg: '#f1f1f1' };
                 return <Chip label={row.status?.toUpperCase()} size="small" sx={{ fontWeight: 800, fontSize: '0.6rem', backgroundColor: config.bg, color: config.color, borderRadius: '4px' }} />;

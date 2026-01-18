@@ -24,9 +24,11 @@ import { DataTable } from '../DataTable';
 import { API_BASE_URL } from '../../config/api';
 
 const RUST = '#b52841';
+const MAROON = '#800000';
 const DARK_NAVY = '#1a202c';
 const SUCCESS_GREEN = '#198754';
 const WARNING_ORANGE = '#f39c12';
+const LEAD_BLUE = '#0ea5e9';
 
 interface ViewCustomerProps {
     customer: any;
@@ -60,6 +62,14 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
     const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' }>({ 
         open: false, message: '', severity: 'success' 
     });
+
+    // --- Helper for Customer Status Colors ---
+    const getStatusColor = (status: string) => {
+        const s = status?.toLowerCase();
+        if (s === 'active') return SUCCESS_GREEN;
+        if (s === 'lead') return LEAD_BLUE;
+        return MAROON;
+    };
 
     const fetchClientData = useCallback(async () => {
         setLoading(true);
@@ -95,7 +105,7 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
 
     const handleActualDelete = async () => {
         if (!deleteConfirm.data?.id) return;
-        const endpoint = deleteConfirm.type === 'payments' ? 'api/payments' : deleteConfirm.type;
+        const endpoint = deleteConfirm.type === 'payments' ? 'payments' : deleteConfirm.type;
         try {
             const response = await fetch(`${API_BASE_URL}/${endpoint}/${deleteConfirm.data.id}`, { method: 'DELETE' });
             if (response.ok) {
@@ -129,7 +139,7 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
                 );
             }
         },
-        { id: 'doc_no', label: 'DOCUMENT', render: (row: any) => <Box><Typography sx={{ fontSize: '0.75rem', color: RUST, fontWeight: 700 }}>{row.doc_no}</Typography><Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600 }}>{row.type?.toUpperCase()}</Typography></Box> },
+        { id: 'doc_no', label: 'DOCUMENT', render: (row: any) => <Box><Typography sx={{ fontSize: '0.75rem', color: RUST, fontWeight: 700 }}>{row.doc_no}</Typography><Typography variant="caption" sx={{ fontSize: '0.65rem', fontWeight: 600, textTransform: 'capitalize' }}>{row.type?.toLowerCase()}</Typography></Box> },
         {
             id: 'services',
             label: 'SERVICE ITEMS',
@@ -154,11 +164,16 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
         { 
             id: 'status', label: 'STATUS',
             render: (row: any) => {
+                // Check if type is quotation first
+                if (row.type?.toLowerCase() === 'quotation') {
+                    return <Chip label="Quotation" size="small" sx={{ bgcolor: alpha('#0ea5e9', 0.1), color: "#0ea5e9", fontSize: '0.6rem', fontWeight: 800, borderRadius: '4px' }} />;
+                }
+
                 const totalPaid = Number(row.total_paid || 0);
                 const grandTotal = Number(row.grand_total);
-                let label = 'UNPAID', color = RUST;
-                if (totalPaid >= grandTotal && grandTotal > 0) { label = 'FULLY PAID'; color = SUCCESS_GREEN; }
-                else if (totalPaid > 0) { label = 'PARTIAL'; color = WARNING_ORANGE; }
+                let label = 'Unpaid', color = RUST;
+                if (totalPaid >= grandTotal && grandTotal > 0) { label = 'Fully paid'; color = SUCCESS_GREEN; }
+                else if (totalPaid > 0) { label = 'Partial'; color = WARNING_ORANGE; }
                 return <Chip label={label} size="small" sx={{ bgcolor: alpha(color, 0.1), color, fontSize: '0.6rem', fontWeight: 800, borderRadius: '4px' }} />;
             }
         }
@@ -208,9 +223,13 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
             render: (row: any) => {
                 const masterBilling = billingRecords.find(b => b.id === row.billing_id);
                 const status = (masterBilling?.status || row.billing_status || 'unpaid').toLowerCase();
-                const config: any = { paid: { color: SUCCESS_GREEN, bg: alpha(SUCCESS_GREEN, 0.1) }, partial: { color: WARNING_ORANGE, bg: alpha(WARNING_ORANGE, 0.1) }, unpaid: { color: RUST, bg: alpha(RUST, 0.1) } };
+                const config: any = { 
+                    paid: { label: 'Fully paid', color: SUCCESS_GREEN, bg: alpha(SUCCESS_GREEN, 0.1) }, 
+                    partial: { label: 'Partial', color: WARNING_ORANGE, bg: alpha(WARNING_ORANGE, 0.1) }, 
+                    unpaid: { label: 'Unpaid', color: RUST, bg: alpha(RUST, 0.1) } 
+                };
                 const style = config[status] || config.unpaid;
-                return <Chip label={status.toUpperCase()} size="small" sx={{ fontSize: '0.6rem', bgcolor: style.bg, color: style.color, borderRadius: '4px', fontWeight: 800 }} />;
+                return <Chip label={style.label} size="small" sx={{ fontSize: '0.6rem', bgcolor: style.bg, color: style.color, borderRadius: '4px', fontWeight: 800 }} />;
             }
         }
     ];
@@ -240,7 +259,7 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
             render: (row: any) => {
                 const colors: any = { discovery: '#64748b', design: '#7c3aed', development: '#0ea5e9', completed: SUCCESS_GREEN };
                 const color = colors[row.status?.toLowerCase()] || WARNING_ORANGE;
-                return <Chip label={row.status?.toUpperCase()} size="small" sx={{ bgcolor: alpha(color, 0.1), color, fontWeight: 800, fontSize: '0.6rem', borderRadius: '4px' }} />;
+                return <Chip label={row.status} size="small" sx={{ bgcolor: alpha(color, 0.1), color, fontWeight: 800, fontSize: '0.6rem', borderRadius: '4px', textTransform: 'capitalize' }} />;
             }
         },
         { 
@@ -264,7 +283,18 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
 
             <Stack spacing={0.5} sx={{ mb: 4 }}>
                 <Typography variant="h4" sx={{ fontWeight: 900, color: DARK_NAVY }}>{customer.companyName}</Typography>
-                <Chip label={customer.status?.toUpperCase() || 'ACTIVE'} size="small" sx={{ width: 'fit-content', fontWeight: 800, borderRadius: '6px' }} />
+                <Chip 
+                    label={customer.status || 'Active'} 
+                    size="small" 
+                    sx={{ 
+                        width: 'fit-content', 
+                        fontWeight: 800, 
+                        borderRadius: '6px',
+                        textTransform: 'capitalize',
+                        bgcolor: alpha(getStatusColor(customer.status), 0.1),
+                        color: getStatusColor(customer.status)
+                    }} 
+                />
             </Stack>
 
             <Tabs value={activeTab} onChange={(_, v: number) => setActiveTab(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider', '& .Mui-selected': { color: RUST } }} TabIndicatorProps={{ sx: { bgcolor: RUST } }}>
