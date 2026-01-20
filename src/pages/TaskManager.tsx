@@ -4,8 +4,11 @@ import {
     Box, Typography, Stack, Checkbox, 
     Dialog, DialogContent, Snackbar, Alert, Paper, alpha,
     DialogTitle, DialogActions, Button,
-    Grid
+    Grid,
+    Chip
 } from '@mui/material';
+
+// Icons
 import AssignmentCheckIcon from '@mui/icons-material/AssignmentTurnedIn';
 import PendingActionsIcon from '@mui/icons-material/PendingActions';
 import EventBusyIcon from '@mui/icons-material/EventBusy';
@@ -31,15 +34,25 @@ export const TasksPage = () => {
     const [viewOpen, setViewOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<any | null>(null);
     const [editData, setEditData] = useState<any | null>(null);
+    
+    // Filtering State
+    const [activeFilter, setActiveFilter] = useState<string>('all');
+
+    // UI Feedback States
     const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; data: any | null }>({ open: false, data: null });
     const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' as 'success' | 'error' });
 
+    const showMessage = (msg: string, sev: 'success' | 'error' = 'success') => {
+        setSnackbar({ open: true, message: msg, severity: sev });
+    };
+
     const fetchTasks = async () => {
+        setLoading(true);
         try {
             const res = await axios.get(`${API_BASE_URL}/tasks`);
             setTasks(res.data);
         } catch (err) {
-            setSnackbar({ open: true, message: 'Server Connection Error', severity: 'error' });
+            showMessage('Connection to ERP Server failed', 'error');
         } finally {
             setLoading(false);
         }
@@ -50,36 +63,38 @@ export const TasksPage = () => {
     const handleToggleStatus = async (task: any) => {
         const newStatus = task.status === 'Completed' ? 'Pending' : 'Completed';
         try {
-            await axios.put(`${API_BASE_URL}/${task.id}`, { status: newStatus });
+            await axios.put(`${API_BASE_URL}/tasks/${task.id}`, { status: newStatus });
             fetchTasks();
+            showMessage(`Task marked as ${newStatus}`);
         } catch (err) {
-            setSnackbar({ open: true, message: 'Update failed', severity: 'error' });
+            showMessage('Status update failed', 'error');
         }
     };
 
     const handleFormSubmit = async (formData: any) => {
         try {
             if (editData) {
-                await axios.put(`${API_BASE_URL}/${editData.id}`, formData);
+                await axios.put(`${API_BASE_URL}/tasks/${editData.id}`, formData);
+                showMessage('Task updated successfully');
             } else {
-                await axios.post(API_BASE_URL, { ...formData, owner: CURRENT_USER });
+                await axios.post(`${API_BASE_URL}/tasks`, { ...formData, owner: CURRENT_USER });
+                showMessage('New task added to ledger');
             }
             setModalOpen(false);
             fetchTasks();
-            setSnackbar({ open: true, message: 'Task Updated', severity: 'success' });
         } catch (err) {
-            setSnackbar({ open: true, message: 'Error saving task', severity: 'error' });
+            showMessage('Operation failed: Check server logs', 'error');
         }
     };
 
     const handleConfirmDelete = async () => {
         if (deleteConfirm.data) {
             try {
-                await axios.delete(`${API_BASE_URL}/${deleteConfirm.data.id}`);
+                await axios.delete(`${API_BASE_URL}/tasks/${deleteConfirm.data.id}`);
                 fetchTasks();
-                setSnackbar({ open: true, message: 'Task removed', severity: 'success' });
+                showMessage('Task permanently removed');
             } catch (err) {
-                setSnackbar({ open: true, message: 'Delete failed', severity: 'error' });
+                showMessage('Delete failed: Item not found', 'error');
             }
         }
         setDeleteConfirm({ open: false, data: null });
@@ -89,12 +104,26 @@ export const TasksPage = () => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         return {
+            total: tasks.length,
             completed: tasks.filter(t => t.status === 'Completed').length,
             pending: tasks.filter(t => t.status === 'Pending').length,
             overdue: tasks.filter(t => t.status === 'Pending' && new Date(t.due_date) < today).length,
-            onTrack: tasks.filter(t => t.status === 'Completed' || (t.status === 'Pending' && new Date(t.due_date) >= today)).length,
+            onTrack: tasks.filter(t => t.status === 'Pending' && new Date(t.due_date) >= today).length,
         };
     }, [tasks]);
+
+    // Filtered Data for the Table
+    const filteredTasks = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        switch(activeFilter) {
+            case 'completed': return tasks.filter(t => t.status === 'Completed');
+            case 'pending': return tasks.filter(t => t.status === 'Pending');
+            case 'overdue': return tasks.filter(t => t.status === 'Pending' && new Date(t.due_date) < today);
+            case 'onTrack': return tasks.filter(t => t.status === 'Pending' && new Date(t.due_date) >= today);
+            default: return tasks;
+        }
+    }, [tasks, activeFilter]);
 
     const columns = [
         { 
@@ -104,7 +133,7 @@ export const TasksPage = () => {
                 <Checkbox 
                     checked={row.status === 'Completed'}
                     onChange={() => handleToggleStatus(row)}
-                    sx={{ color: '#cbd5e1', '&.Mui-checked': { color: SUCCESS_GREEN } }}
+                    sx={{ color: '#cbd5e1', '&.Mui-checked': { color: SUCCESS_GREEN }, p: 0.5 }}
                 />
             )
         },
@@ -113,78 +142,161 @@ export const TasksPage = () => {
             label: 'TASK DESCRIPTION',
             render: (row: any) => (
                 <Typography sx={{ 
-                    fontSize: '0.85rem', fontWeight: 500, color: DARK_NAVY,
+                    fontSize: '0.8rem', fontWeight: 600, color: DARK_NAVY,
                     textDecoration: row.status === 'Completed' ? 'line-through' : 'none',
                     opacity: row.status === 'Completed' ? 0.5 : 1,
                     display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: 1.4, maxWidth: '400px'
+                    overflow: 'hidden', lineHeight: 1.3
                 }}>
                     {row.task_name}
                 </Typography>
             )
         },
-        { id: 'category', label: 'CATEGORY', render: (row: any) => <Typography sx={{ color: PRIMARY_RUST, fontWeight: 800, fontSize: '0.65rem' }}>{row.category.toUpperCase()}</Typography> },
-        { id: 'due_date', label: 'DUE DATE', render: (row: any) => <Typography sx={{ fontSize: '0.8rem', fontWeight: 600 }}>{new Date(row.due_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</Typography> },
-        { id: 'owner', label: 'OWNER', render: (row: any) => <Typography sx={{ fontSize: '0.8rem', fontWeight: 500, color: 'text.secondary' }}>{row.owner}</Typography> }
+        { id: 'category', label: 'CATEGORY', render: (row: any) => <Typography sx={{ color: PRIMARY_RUST, fontWeight: 700, fontSize: '0.65rem' }}>{row.category.toUpperCase()}</Typography> },
+        { id: 'due_date', label: 'DUE DATE', render: (row: any) => <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }}>{new Date(row.due_date).toLocaleDateString('en-GB')}</Typography> },
+        { id: 'owner', label: 'OWNER', render: (row: any) => <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }}>{row.owner}</Typography> }
     ];
 
     return (
-        <Box sx={{ p: 3, bgcolor: '#fcfcfc', minHeight: '100vh' }}>
-            <Grid container spacing={2} sx={{ mb: 4 }}>
-                <StatCard label="Completed" value={stats.completed} icon={<AssignmentCheckIcon />} color={SUCCESS_GREEN} />
-                <StatCard label="Incomplete" value={stats.pending} icon={<PendingActionsIcon />} color={DARK_NAVY} />
-                <StatCard label="Overdue" value={stats.overdue} icon={<EventBusyIcon />} color={PRIMARY_RUST} />
-                <StatCard label="On Track" value={stats.onTrack} icon={<SpeedIcon />} color={WARNING_ORANGE} />
+        <Box sx={{ p: 2, bgcolor: '#fcfcfc', minHeight: '100vh' }}>
+            {/* Clickable Colored Stat Cards */}
+            <Grid container spacing={1.5} sx={{ mb: 3 }}>
+                <StatCard 
+                    label="Completed" 
+                    value={stats.completed} 
+                    icon={<AssignmentCheckIcon sx={{fontSize: 18}}/>} 
+                    color={SUCCESS_GREEN} 
+                    active={activeFilter === 'completed'}
+                    onClick={() => setActiveFilter(activeFilter === 'completed' ? 'all' : 'completed')}
+                />
+                <StatCard 
+                    label="Pending" 
+                    value={stats.pending} 
+                    icon={<PendingActionsIcon sx={{fontSize: 18}}/>} 
+                    color={DARK_NAVY} 
+                    active={activeFilter === 'pending'}
+                    onClick={() => setActiveFilter(activeFilter === 'pending' ? 'all' : 'pending')}
+                />
+                <StatCard 
+                    label="Overdue" 
+                    value={stats.overdue} 
+                    icon={<EventBusyIcon sx={{fontSize: 18}}/>} 
+                    color={PRIMARY_RUST} 
+                    active={activeFilter === 'overdue'}
+                    onClick={() => setActiveFilter(activeFilter === 'overdue' ? 'all' : 'overdue')}
+                />
+                <StatCard 
+                    label="On Track" 
+                    value={stats.onTrack} 
+                    icon={<SpeedIcon sx={{fontSize: 18}}/>} 
+                    color={WARNING_ORANGE} 
+                    active={activeFilter === 'onTrack'}
+                    onClick={() => setActiveFilter(activeFilter === 'onTrack' ? 'all' : 'onTrack')}
+                />
             </Grid>
+
+            {activeFilter !== 'all' && (
+                <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <Chip 
+                        label={`FILTER: ${activeFilter.toUpperCase()}`} 
+                        size="small" 
+                        onDelete={() => setActiveFilter('all')}
+                        sx={{ bgcolor: DARK_NAVY, color: '#fff', fontWeight: 700, fontSize: '0.65rem', '& .MuiChip-deleteIcon': { color: '#fff' } }}
+                    />
+                </Box>
+            )}
 
             <DataTable
                 title="Task Ledger"
                 columns={columns}
-                data={tasks}
+                data={filteredTasks}
                 primaryAction={{ label: 'New Task', onClick: () => { setEditData(null); setModalOpen(true); } }}
                 onView={(id) => { setSelectedTask(tasks.find(t => t.id === id)); setViewOpen(true); }}
                 onEdit={(id) => { setEditData(tasks.find(t => t.id === id)); setModalOpen(true); }}
                 onDelete={(id) => setDeleteConfirm({ open: true, data: tasks.find(t => t.id === id) })}
             />
 
+            {/* Modals & Dialogs */}
             <ViewTask open={viewOpen} onClose={() => setViewOpen(false)} data={selectedTask} />
 
-            <Dialog open={deleteConfirm.open} onClose={() => setDeleteConfirm({ open: false, data: null })}>
-                <DialogTitle sx={{ fontWeight: 800, color: PRIMARY_RUST }}><WarningAmberIcon sx={{ mr: 1 }} /> Delete Task?</DialogTitle>
-                <DialogContent><Typography variant="body2">Remove <strong>{deleteConfirm.data?.task_name}</strong>?</Typography></DialogContent>
-                <DialogActions sx={{ p: 2 }}>
-                    <Button onClick={() => setDeleteConfirm({ open: false, data: null })}>Cancel</Button>
-                    <Button onClick={handleConfirmDelete} variant="contained" sx={{ bgcolor: PRIMARY_RUST }}>Delete</Button>
+            <Dialog open={deleteConfirm.open} onClose={() => setDeleteConfirm({ open: false, data: null })} PaperProps={{ sx: { borderRadius: '12px', width: '350px' } }}>
+                <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700, color: PRIMARY_RUST, pb: 1 }}>
+                    <WarningAmberIcon /> Confirm Delete
+                </DialogTitle>
+                <DialogContent>
+                    <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
+                        Remove <strong>{deleteConfirm.data?.task_name}</strong>?
+                    </Typography>
+                </DialogContent>
+                <DialogActions sx={{ p: 2, pt: 0 }}>
+                    <Button onClick={() => setDeleteConfirm({ open: false, data: null })} sx={{ color: 'text.secondary', textTransform: 'none' }}>Cancel</Button>
+                    <Button onClick={handleConfirmDelete} variant="contained" sx={{ bgcolor: PRIMARY_RUST, textTransform: 'none' }}>Delete Task</Button>
                 </DialogActions>
             </Dialog>
 
-            <Dialog open={modalOpen} onClose={() => setModalOpen(false)} fullWidth maxWidth="xs">
+            <Dialog open={modalOpen} onClose={() => setModalOpen(false)} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '12px' } }}>
                 <Box sx={{ p: 3 }}>
-                    <Typography variant="h6" sx={{ fontWeight: 800, mb: 2 }}>{editData ? 'Edit Task' : 'New Task'}</Typography>
-                    <AddTaskForm initialData={editData} onSuccess={handleFormSubmit} />
+                    <Typography sx={{ fontWeight: 700, color: DARK_NAVY, mb: 2, fontSize: '1.1rem' }}>
+                        {editData ? 'Update Task Details' : 'Create New Task'}
+                    </Typography>
+                    <AddTaskForm initialData={editData} onSuccess={handleFormSubmit} onClose={() => setModalOpen(false)} />
                 </Box>
             </Dialog>
 
-            <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
-                <Alert severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
+            <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+                <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} variant="filled" sx={{ borderRadius: '8px', fontWeight: 600 }}>
+                    {snackbar.message}
+                </Alert>
             </Snackbar>
         </Box>
     );
 };
 
-const StatCard = ({ label, value, icon, color }: any) => (
+// Revised Colored StatCard Component
+const StatCard = ({ label, value, icon, color, active, onClick }: any) => (
     <Grid size={{ xs: 6, sm: 3 }}>
-        <Paper variant="outlined" sx={{ 
-            p: 2, borderRadius: '12px', 
-            border: `1.5px solid ${alpha(color, 0.45)}`, // Sharper/Darker outline
-            bgcolor: '#fff',
-            '&:hover': { transform: 'translateY(-2px)', transition: '0.2s' }
-        }}>
-            <Stack direction="row" spacing={2} alignItems="center">
-                <Box sx={{ p: 1, borderRadius: '8px', bgcolor: alpha(color, 0.1), color: color, display: 'flex' }}>{icon}</Box>
+        <Paper 
+            variant="outlined" 
+            onClick={onClick}
+            sx={{ 
+                p: 1.5, 
+                borderRadius: '10px', 
+                border: '1px solid',
+                borderColor: active ? color : alpha(color, 0.2), 
+                // Persistent background color
+                bgcolor: active ? alpha(color, 0.12) : alpha(color, 0.04),
+                cursor: 'pointer',
+                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+                transform: active ? 'scale(1.02)' : 'scale(1)',
+                boxShadow: active ? `0 6px 15px ${alpha(color, 0.15)}` : 'none',
+                position: 'relative',
+                overflow: 'hidden',
+                '&:hover': {
+                    bgcolor: alpha(color, 0.08),
+                    borderColor: color,
+                    transform: 'translateY(-3px)'
+                }
+            }}
+        >
+            <Stack direction="row" spacing={1.5} alignItems="center">
+                <Box sx={{ 
+                    p: 0.8, 
+                    borderRadius: '8px', 
+                    bgcolor: active ? color : alpha(color, 0.1), 
+                    color: active ? '#fff' : color, 
+                    display: 'flex',
+                    boxShadow: active ? `0 4px 10px ${alpha(color, 0.3)}` : 'none',
+                    transition: 'all 0.3s'
+                }}>
+                    {icon}
+                </Box>
                 <Box>
-                    <Typography variant="h5" sx={{ fontWeight: 900, lineHeight: 1 }}>{value}</Typography>
-                    <Typography variant="caption" sx={{ fontWeight: 700, textTransform: 'uppercase', fontSize: '0.6rem' }}>{label}</Typography>
+                    <Typography sx={{ fontWeight: 800, color: DARK_NAVY, fontSize: '1.05rem', lineHeight: 1.1 }}>
+                        {value}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.62rem', textTransform: 'uppercase', fontWeight: 700, letterSpacing: 0.5 }}>
+                        {label}
+                    </Typography>
                 </Box>
             </Stack>
         </Paper>

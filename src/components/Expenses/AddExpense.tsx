@@ -17,7 +17,6 @@ interface Expense {
     amount: string | number;
     category: string;
     status: 'paid' | 'unpaid';
-    expense_date: string;
     description?: string;
     document_url?: string;
 }
@@ -34,14 +33,14 @@ export const AddExpenseForm: React.FC<FormProps> = ({ onSuccess, onClose, initia
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
 
+  // Removed expense_date from state
   const [formData, setFormData] = useState({
     category: '',
-    title: '', // Title acts as the main "Type/Subject"
+    title: '', 
     amount: '',
     description: '',
     status: 'unpaid' as 'paid' | 'unpaid',
     document_url: '', 
-    expense_date: new Date().toISOString().split('T')[0] // Silent capture
   });
 
   useEffect(() => {
@@ -53,7 +52,6 @@ export const AddExpenseForm: React.FC<FormProps> = ({ onSuccess, onClose, initia
         description: initialData.description || '',
         status: initialData.status || 'unpaid',
         document_url: initialData.document_url || '',
-        expense_date: initialData.expense_date || new Date().toISOString().split('T')[0]
       });
     }
   }, [initialData]);
@@ -101,7 +99,7 @@ export const AddExpenseForm: React.FC<FormProps> = ({ onSuccess, onClose, initia
         {steps.map((label) => (
           <Step key={label}>
             <StepLabel>
-              <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: DARK_NAVY }}>{label}</Typography>
+              <Typography sx={{ fontSize: '0.7rem', fontWeight: 800, color: DARK_NAVY }}>{label}</Typography>
             </StepLabel>
           </Step>
         ))}
@@ -109,22 +107,22 @@ export const AddExpenseForm: React.FC<FormProps> = ({ onSuccess, onClose, initia
 
       <Box sx={{ minHeight: '260px' }}>
         {activeStep === 0 && (
-          <Grid container spacing={2.5}>
+          <Grid container spacing={2}>
             <Grid size={12}>
               <TextField 
                 select fullWidth size="small" label="Expense Category"
                 value={formData.category}
                 onChange={(e) => setFormData({...formData, category: e.target.value})}
               >
-                {['Rent & Utilities', 'Payroll', 'Software Expenses', 'Office Admin', 'Miscellenous'].map(opt => (
-                  <MenuItem key={opt} value={opt}>{opt}</MenuItem>
+                {['Rent & Utilities', 'Payroll', 'Software Expenses', 'Office Admin', 'Miscellaneous'].map(opt => (
+                  <MenuItem key={opt} value={opt} sx={{ fontSize: '0.8rem' }}>{opt}</MenuItem>
                 ))}
               </TextField>
             </Grid>
             <Grid size={12}>
               <TextField 
                 fullWidth size="small" label="Expense Title / Subject"
-                placeholder="e.g. Monthly Rent"
+                placeholder="e.g. Server Hosting"
                 value={formData.title}
                 onChange={(e) => setFormData({...formData, title: e.target.value})}
               />
@@ -146,10 +144,10 @@ export const AddExpenseForm: React.FC<FormProps> = ({ onSuccess, onClose, initia
                 onClick={() => document.getElementById('file-input')?.click()}
               >
                 <CloudUploadIcon sx={{ color: '#64748b', mb: 1 }} />
-                <Typography sx={{ fontSize: '0.75rem', fontWeight: 700, color: DARK_NAVY }}>
+                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: DARK_NAVY }}>
                   {fileName ? fileName : 'Attach Receipt (Optional)'}
                 </Typography>
-                <input type="file" id="file-input" hidden onChange={handleFileChange} accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx" />
+                <input type="file" id="file-input" hidden onChange={handleFileChange} accept=".pdf,.doc,.docx,.jpg,.png" />
               </Box>
             </Grid>
           </Grid>
@@ -162,7 +160,7 @@ export const AddExpenseForm: React.FC<FormProps> = ({ onSuccess, onClose, initia
                 fullWidth label="Amount (KSh)" type="number"
                 value={formData.amount}
                 onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                slotProps={{ input: { sx: { fontWeight: 800, fontSize: '1.1rem' } } }}
+                slotProps={{ input: { sx: { fontWeight: 800, fontSize: '1.2rem' } } }}
               />
             </Grid>
             <Grid size={12}>
@@ -176,7 +174,7 @@ export const AddExpenseForm: React.FC<FormProps> = ({ onSuccess, onClose, initia
                     label={status.toUpperCase()}
                     onClick={() => setFormData({...formData, status})}
                     sx={{
-                      px: 2, fontWeight: 900, fontSize: '0.7rem',
+                      px: 2, fontWeight: 900, fontSize: '0.65rem',
                       bgcolor: formData.status === status 
                         ? (status === 'paid' ? SUCCESS_GREEN : RUST_COLOR) 
                         : alpha('#ccc', 0.2),
@@ -188,13 +186,7 @@ export const AddExpenseForm: React.FC<FormProps> = ({ onSuccess, onClose, initia
                 ))}
               </Stack>
             </Grid>
-            <Grid size={12} sx={{ mt: 2 }}>
-               <Box sx={{ p: 2, bgcolor: alpha(DARK_NAVY, 0.03), borderRadius: '8px', border: '1px solid #eee' }}>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>
-                    RECORDING DATE: {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' })}
-                  </Typography>
-               </Box>
-            </Grid>
+            {/* Date Display Removed here */}
           </Grid>
         )}
       </Box>

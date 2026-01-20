@@ -60,7 +60,7 @@ export const PaymentsPage = () => {
   const handleActualDelete = async () => {
     if (!deleteConfirm.data?.id) return;
     try {
-      const response = await fetch(`${API_BASE_URL}/api/payments/${deleteConfirm.data.id}`, {
+      const response = await fetch(`${API_BASE_URL}/payments/${deleteConfirm.data.id}`, {
         method: 'DELETE'
       });
       if (response.ok) {
