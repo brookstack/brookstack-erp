@@ -22,6 +22,8 @@ import customerRoutes from './modules/customers.js';
 import billingRoutes from './modules/billing.js'; 
 import paymentRoutes from './modules/payments.js'; 
 import projectsRoutes from './modules/projects.js'; 
+import expensesRoutes from './modules/expenses.js'; 
+import tasksRoutes from './modules/tasks.js'; 
 import userRoutes from './modules/users.js';
 
 // FIXED PREFIX: This makes it easier for the frontend to stay consistent
@@ -32,6 +34,8 @@ app.use(`${prefix}/customers`, customerRoutes);
 app.use(`${prefix}/billing`, billingRoutes); 
 app.use(`${prefix}/payments`, paymentRoutes); 
 app.use(`${prefix}/projects`, projectsRoutes); 
+app.use(`${prefix}/expenses`, expensesRoutes); 
+app.use(`${prefix}/tasks`, tasksRoutes); 
 app.use(`${prefix}/users`, userRoutes);
 
 // Test this at: http://localhost:5000/api/test

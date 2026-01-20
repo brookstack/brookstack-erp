@@ -8,12 +8,14 @@ import { PaymentsPage } from './pages/Payments';
 import { LoginPage } from './pages/LoginPage'; // Ensure you created this file
 import { StaffPage } from './pages/UsersPage';
 import { ProjectsPage } from './pages/Projects';
+import { TasksPage } from './pages/TaskManager';
+import { ExpensesPage } from './pages/Expenses';
 
 // --- PROTECTED ROUTE COMPONENT ---
 // This checks for the token before allowing access to the ERP
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const token = localStorage.getItem('token');
-  
+
   if (!token) {
     // If no token, redirect to login page
     return <Navigate to="/login" replace />;
@@ -40,8 +42,10 @@ function App() {
                 <Route path="/billing" element={<BillingPage />} />
                 <Route path="/payments" element={<PaymentsPage />} />
                 <Route path="/projects" element={<ProjectsPage />} />
+                <Route path='/expenses' element={<ExpensesPage/>} />
+                <Route path="/tasks" element={<TasksPage />} />
                 <Route path="/staff" element={<StaffPage />} />
-                
+
                 {/* Catch-all for authenticated users: redirect back to dashboard if route doesn't exist */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
