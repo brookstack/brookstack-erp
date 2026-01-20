@@ -63,7 +63,7 @@ export const ProjectsPage = () => {
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
-    // Status Configuration (Strict Stages + All Projects)
+    // Status Configuration
     const stageConfig: any = {
         all: { color: TOTAL_NAVY, label: 'Total Projects', icon: <AssignmentIcon sx={{fontSize: 18}}/> },
         development: { color: INFO_BLUE, label: 'Design & Development', icon: <CodeIcon sx={{fontSize: 18}}/> },
@@ -109,7 +109,7 @@ export const ProjectsPage = () => {
         try {
             await axios.delete(`${API_BASE_URL}/projects/${deleteConfirm.data.id}`);
             setDeleteConfirm({ open: false, data: null });
-            setSnackbar({ open: true, message: `Project removed`, severity: 'success' });
+            setSnackbar({ open: true, message: `Project removed successfully`, severity: 'success' });
             fetchData();
         } catch (error) {
             setSnackbar({ open: true, message: 'Delete failed', severity: 'error' });
@@ -130,6 +130,15 @@ export const ProjectsPage = () => {
             )
         },
         { id: 'project_name', label: 'PROJECT NAME' },
+        { 
+            id: 'project_type', 
+            label: 'TYPE',
+            render: (row: any) => (
+                <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b' }}>
+                    {row.project_type || 'N/A'}
+                </Typography>
+            )
+        },
         { id: 'clientName', label: 'CLIENT' }, 
         {
             id: 'status',
@@ -230,14 +239,14 @@ export const ProjectsPage = () => {
                 <DialogActions sx={{ p: 2 }}>
                     <Button onClick={() => setDeleteConfirm({ open: false, data: null })}>Cancel</Button>
                     <Button disabled={isDeleting} onClick={handleActualDelete} variant="contained" sx={{ bgcolor: PRIMARY_RUST }}>
-                        {isDeleting ? <CircularProgress size={20} /> : 'Delete'}
+                        {isDeleting ? <CircularProgress size={20} color="inherit" /> : 'Delete'}
                     </Button>
                 </DialogActions>
             </Dialog>
 
             <Dialog open={modalOpen} onClose={() => setModalOpen(false)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: '20px' } }}>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid #f1f5f9' }}>
-                    <Typography variant="h6" sx={{ fontWeight: 800 }}>{editData ? 'Update Project' : 'Initiate New Project'}</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 800, color: DARK_NAVY }}>{editData ? 'Update Project' : 'Initiate New Project'}</Typography>
                     <IconButton onClick={() => setModalOpen(false)}><CloseIcon /></IconButton>
                 </Stack>
                 <DialogContent sx={{ py: 3 }}>
@@ -246,7 +255,7 @@ export const ProjectsPage = () => {
             </Dialog>
 
             <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
-                <Alert severity={snackbar.severity} variant="filled">{snackbar.message}</Alert>
+                <Alert severity={snackbar.severity} variant="filled" sx={{ fontWeight: 600 }}>{snackbar.message}</Alert>
             </Snackbar>
         </Box>
     );
@@ -259,7 +268,7 @@ const StatCard = ({ label, value, icon, color, active, onClick }: any) => (
             sx={{ 
                 p: 2, borderRadius: '12px', borderLeft: `4px solid ${color}`,
                 bgcolor: active ? alpha(color, 0.08) : alpha(color, 0.02),
-                cursor: 'pointer', transition: '0.2s',
+                cursor: 'pointer', transition: '0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 '&:hover': { bgcolor: alpha(color, 0.1), transform: 'translateY(-3px)' }
             }}
         >
