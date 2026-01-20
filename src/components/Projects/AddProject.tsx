@@ -242,7 +242,7 @@ export const AddProjectForm: React.FC<FormProps> = ({ onSuccess, onError, initia
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>
               <TextField {...fieldProps} select name="status" label="Development Phase" value={formData.status}>
-                {['Design & Development', 'QA/UAT/Testing','Completed', 'Retired'].map((stage) => (
+                {['Design & Development', 'UAT','Completed', 'Retired'].map((stage) => (
                   <MenuItem key={stage} value={stage} sx={{ fontSize: '0.85rem' }}>{stage}</MenuItem>
                 ))}
               </TextField>

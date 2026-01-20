@@ -12,6 +12,7 @@ import CodeIcon from '@mui/icons-material/Code';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import DeleteSweepIcon from '@mui/icons-material/DeleteSweep';
+import AssignmentIcon from '@mui/icons-material/Assignment';
 import axios from 'axios';
 
 // Components
@@ -22,10 +23,10 @@ import { ViewProject } from '../components/Projects/ViewProject';
 
 const PRIMARY_RUST = '#b52841';
 const DARK_NAVY = '#1a202c';
+const TOTAL_NAVY = '#446dbfff';
 const SUCCESS_GREEN = '#10b981';
 const INFO_BLUE = '#0ea5e9';
 const WARNING_ORANGE = '#f59e0b';
-const SANS_STACK = 'ui-sans-serif, system-ui, sans-serif';
 
 export const ProjectsPage = () => {
     const [projects, setProjects] = useState<any[]>([]);
@@ -54,7 +55,7 @@ export const ProjectsPage = () => {
             const res = await axios.get(`${API_BASE_URL}/projects`);
             setProjects(Array.isArray(res.data) ? res.data : []);
         } catch (error) {
-            setSnackbar({ open: true, message: 'Failed to fetch dashboard data', severity: 'error' });
+            setSnackbar({ open: true, message: 'Failed to fetch project data', severity: 'error' });
         } finally {
             setLoading(false);
         }
@@ -62,23 +63,44 @@ export const ProjectsPage = () => {
 
     useEffect(() => { fetchData(); }, [fetchData]);
 
+    // Status Configuration (Strict Stages + All Projects)
+    const stageConfig: any = {
+        all: { color: TOTAL_NAVY, label: 'Total Projects', icon: <AssignmentIcon sx={{fontSize: 18}}/> },
+        development: { color: INFO_BLUE, label: 'Design & Development', icon: <CodeIcon sx={{fontSize: 18}}/> },
+        uat: { color: WARNING_ORANGE, label: 'UATs', icon: <BugReportIcon sx={{fontSize: 18}}/> },
+        completed: { color: SUCCESS_GREEN, label: 'Completed', icon: <CheckCircleIcon sx={{fontSize: 18}}/> },
+        retired: { color: PRIMARY_RUST, label: 'Retired', icon: <DeleteSweepIcon sx={{fontSize: 18}}/> },
+    };
+
     // Statistics Calculation
     const stats = useMemo(() => {
-        return {
-            devCount: projects.filter(p => ['design', 'development', 'discovery'].includes(p.status?.toLowerCase())).length,
-            qaCount: projects.filter(p => ['uat', 'testing'].includes(p.status?.toLowerCase())).length,
-            completedCount: projects.filter(p => p.status?.toLowerCase() === 'completed').length,
-            retiredCount: projects.filter(p => p.status?.toLowerCase() === 'retired').length,
-        };
+        const counts: any = { all: projects.length, development: 0, uat: 0, completed: 0, retired: 0 };
+        projects.forEach(p => {
+            const status = p.status?.toLowerCase();
+            if (status === 'design' || status === 'development' || status === 'design & development') {
+                counts.development++;
+            } else if (status === 'uat' || status === 'testing' || status === 'qa') {
+                counts.uat++;
+            } else if (status === 'completed') {
+                counts.completed++;
+            } else if (status === 'retired') {
+                counts.retired++;
+            }
+        });
+        return counts;
     }, [projects]);
 
     // Filter Logic
     const filteredProjects = useMemo(() => {
-        const filter = activeFilter.toLowerCase();
-        if (filter === 'all') return projects;
-        if (filter === 'dev') return projects.filter(p => ['design', 'development', 'discovery'].includes(p.status?.toLowerCase()));
-        if (filter === 'qa') return projects.filter(p => ['uat', 'testing'].includes(p.status?.toLowerCase()));
-        return projects.filter(p => p.status?.toLowerCase() === filter);
+        if (activeFilter === 'all') return projects;
+        return projects.filter(p => {
+            const status = p.status?.toLowerCase();
+            if (activeFilter === 'development') 
+                return status === 'design' || status === 'development' || status === 'design & development';
+            if (activeFilter === 'uat') 
+                return status === 'uat' || status === 'testing' || status === 'qa';
+            return status === activeFilter;
+        });
     }, [projects, activeFilter]);
 
     const handleActualDelete = async () => {
@@ -87,7 +109,7 @@ export const ProjectsPage = () => {
         try {
             await axios.delete(`${API_BASE_URL}/projects/${deleteConfirm.data.id}`);
             setDeleteConfirm({ open: false, data: null });
-            setSnackbar({ open: true, message: `Successfully removed project`, severity: 'success' });
+            setSnackbar({ open: true, message: `Project removed`, severity: 'success' });
             fetchData();
         } catch (error) {
             setSnackbar({ open: true, message: 'Delete failed', severity: 'error' });
@@ -113,20 +135,21 @@ export const ProjectsPage = () => {
             id: 'status',
             label: 'STAGE',
             render: (row: any) => {
-                const stageConfig: any = {
-                    discovery: { color: '#64748b', bg: '#f1f5f9' },
-                    design: { color: '#8b5cf6', bg: alpha('#8b5cf6', 0.1) },
-                    development: { color: INFO_BLUE, bg: alpha(INFO_BLUE, 0.1) },
-                    uat: { color: WARNING_ORANGE, bg: alpha(WARNING_ORANGE, 0.1) },
-                    completed: { color: SUCCESS_GREEN, bg: alpha(SUCCESS_GREEN, 0.1) },
-                    retired: { color: PRIMARY_RUST, bg: alpha(PRIMARY_RUST, 0.1) },
-                };
-                const config = stageConfig[row.status?.toLowerCase()] || { color: '#8a92a6', bg: '#f1f1f1' };
+                const statusKey = row.status?.toLowerCase();
+                let config = stageConfig.development;
+                
+                if (statusKey === 'uat' || statusKey === 'testing' || statusKey === 'qa') config = stageConfig.uat;
+                else if (statusKey === 'completed') config = stageConfig.completed;
+                else if (statusKey === 'retired') config = stageConfig.retired;
+
                 return (
                     <Chip 
-                        label={row.status?.toUpperCase()} 
+                        label={config.label.toUpperCase()} 
                         size="small" 
-                        sx={{ fontWeight: 800, fontSize: '0.6rem', backgroundColor: config.bg, color: config.color, borderRadius: '4px' }} 
+                        sx={{ 
+                            fontWeight: 800, fontSize: '0.6rem', borderRadius: '4px',
+                            backgroundColor: alpha(config.color, 0.1), color: config.color, 
+                        }} 
                     />
                 );
             }
@@ -145,46 +168,24 @@ export const ProjectsPage = () => {
     return (
         <Box sx={{ width: '100%', p: 3, bgcolor: '#fcfcfc', minHeight: '100vh' }}>
             
-            {/* Clickable Stat Cards Row */}
             <Grid container spacing={2} sx={{ mb: 4 }}>
-                <StatCard 
-                    label="Design & Development" 
-                    value={stats.devCount} 
-                    icon={<CodeIcon sx={{fontSize: 18}}/>} 
-                    color={INFO_BLUE} 
-                    active={activeFilter === 'dev'}
-                    onClick={() => setActiveFilter(activeFilter === 'dev' ? 'all' : 'dev')}
-                />
-                <StatCard 
-                    label="QA / UAT / Testing" 
-                    value={stats.qaCount} 
-                    icon={<BugReportIcon sx={{fontSize: 18}}/>} 
-                    color={WARNING_ORANGE} 
-                    active={activeFilter === 'qa'}
-                    onClick={() => setActiveFilter(activeFilter === 'qa' ? 'all' : 'qa')}
-                />
-                <StatCard 
-                    label="Completed" 
-                    value={stats.completedCount} 
-                    icon={<CheckCircleIcon sx={{fontSize: 18}}/>} 
-                    color={SUCCESS_GREEN} 
-                    active={activeFilter === 'completed'}
-                    onClick={() => setActiveFilter(activeFilter === 'completed' ? 'all' : 'completed')}
-                />
-                <StatCard 
-                    label="Retired" 
-                    value={stats.retiredCount} 
-                    icon={<DeleteSweepIcon sx={{fontSize: 18}}/>} 
-                    color={PRIMARY_RUST} 
-                    active={activeFilter === 'retired'}
-                    onClick={() => setActiveFilter(activeFilter === 'retired' ? 'all' : 'retired')}
-                />
+                {Object.keys(stageConfig).map((key) => (
+                    <StatCard 
+                        key={key}
+                        label={stageConfig[key].label} 
+                        value={stats[key]} 
+                        icon={stageConfig[key].icon} 
+                        color={stageConfig[key].color} 
+                        active={activeFilter === key}
+                        onClick={() => setActiveFilter(key)}
+                    />
+                ))}
             </Grid>
 
             {activeFilter !== 'all' && (
                 <Box sx={{ mb: 2 }}>
                     <Chip 
-                        label={`FILTER: ${activeFilter.toUpperCase()}`} 
+                        label={`FILTER: ${stageConfig[activeFilter]?.label.toUpperCase()}`} 
                         size="small" onDelete={() => setActiveFilter('all')}
                         sx={{ bgcolor: DARK_NAVY, color: '#fff', fontWeight: 700, fontSize: '0.65rem' }}
                     />
@@ -195,7 +196,7 @@ export const ProjectsPage = () => {
                 <Stack alignItems="center" py={10}><CircularProgress sx={{ color: PRIMARY_RUST }} /></Stack>
             ) : (
                 <DataTable
-                    title="Projects Ledger"
+                    title="Software Projects Ledger"
                     columns={columns}
                     data={filteredProjects}
                     primaryAction={{
@@ -217,7 +218,6 @@ export const ProjectsPage = () => {
                 />
             )}
 
-            {/* Modals and Dialogs remain same as previous version */}
             <ViewProject open={viewOpen} onClose={() => setViewOpen(false)} project={selectedProject} />
             
             <Dialog open={deleteConfirm.open} onClose={() => !isDeleting && setDeleteConfirm({ open: false, data: null })} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '15px' } }}>
@@ -225,11 +225,13 @@ export const ProjectsPage = () => {
                     <WarningAmberIcon color="error" /> Confirm Deletion
                 </DialogTitle>
                 <DialogContent>
-                    <Typography sx={{ fontSize: '0.9rem' }}>Are you sure you want to delete project: <strong>{deleteConfirm.data?.project_name}</strong>?</Typography>
+                    <Typography sx={{ fontSize: '0.9rem' }}>Permanently remove <strong>{deleteConfirm.data?.project_name}</strong>?</Typography>
                 </DialogContent>
                 <DialogActions sx={{ p: 2 }}>
                     <Button onClick={() => setDeleteConfirm({ open: false, data: null })}>Cancel</Button>
-                    <Button onClick={handleActualDelete} variant="contained" sx={{ bgcolor: PRIMARY_RUST }}>Delete</Button>
+                    <Button disabled={isDeleting} onClick={handleActualDelete} variant="contained" sx={{ bgcolor: PRIMARY_RUST }}>
+                        {isDeleting ? <CircularProgress size={20} /> : 'Delete'}
+                    </Button>
                 </DialogActions>
             </Dialog>
 
@@ -251,18 +253,21 @@ export const ProjectsPage = () => {
 };
 
 const StatCard = ({ label, value, icon, color, active, onClick }: any) => (
-    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+    <Grid size={{xs: 12, sm:6, md:2.4}}>
         <Paper 
             variant="outlined" onClick={onClick}
             sx={{ 
-                p: 2, borderRadius: '12px', borderLeft: `3px solid ${color}`,
+                p: 2, borderRadius: '12px', borderLeft: `4px solid ${color}`,
                 bgcolor: active ? alpha(color, 0.08) : alpha(color, 0.02),
                 cursor: 'pointer', transition: '0.2s',
                 '&:hover': { bgcolor: alpha(color, 0.1), transform: 'translateY(-3px)' }
             }}
         >
-            <Stack direction="row" spacing={2} alignItems="center">
-                <Box sx={{ p: 1, borderRadius: '8px', bgcolor: active ? color : alpha(color, 0.1), color: active ? '#fff' : color, display: 'flex' }}>
+            <Stack direction="row" spacing={1.5} alignItems="center">
+                <Box sx={{ 
+                    p: 1, borderRadius: '8px', bgcolor: active ? color : alpha(color, 0.1), 
+                    color: active ? '#fff' : color, display: 'flex'
+                }}>
                     {icon}
                 </Box>
                 <Box>
