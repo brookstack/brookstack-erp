@@ -207,7 +207,7 @@ export const TasksPage = () => {
             )}
 
             <DataTable
-                title="Task Ledger"
+                title="Tasks Ledger"
                 columns={columns}
                 data={filteredTasks}
                 primaryAction={{ label: 'New Task', onClick: () => { setEditData(null); setModalOpen(true); } }}

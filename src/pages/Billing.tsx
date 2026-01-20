@@ -214,7 +214,7 @@ export const BillingPage = () => {
         <ViewInvoice data={selectedInvoice} onBack={() => { setViewMode(false); setSelectedInvoice(null); }} />
       ) : (
         <DataTable
-          title="Quotations & Invoices"
+          title="Billing Ledger"
           columns={columns}
           data={filteredRecords}
           primaryAction={{ label: 'Generate Document', onClick: () => { setEditData(null); setModalOpen(true); } }}

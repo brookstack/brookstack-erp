@@ -195,7 +195,7 @@ export const PaymentsPage = () => {
         />
       ) : (
         <DataTable
-          title="Payments"
+          title="Payments Ledger"
           columns={columns}
           data={paymentRecords}
           onView={(id) => {

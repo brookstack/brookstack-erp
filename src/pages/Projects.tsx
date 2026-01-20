@@ -195,7 +195,7 @@ export const ProjectsPage = () => {
                 <Stack alignItems="center" py={10}><CircularProgress sx={{ color: PRIMARY_RUST }} /></Stack>
             ) : (
                 <DataTable
-                    title="Software Projects Ledger"
+                    title="Projects Ledger"
                     columns={columns}
                     data={filteredProjects}
                     primaryAction={{

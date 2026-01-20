@@ -194,7 +194,7 @@ export const CustomersPage = () => {
                 />
             ) : (
                 <DataTable
-                    title="Client Ledger"
+                    title="Clients Ledger"
                     columns={columns}
                     data={filteredCustomers}
                     primaryAction={{

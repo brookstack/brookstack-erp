@@ -196,7 +196,7 @@ export const ExpensesPage = () => {
             )}
 
             <DataTable 
-                title="Expense Ledger" 
+                title="Expenses Ledger" 
                 columns={columns} 
                 data={filteredExpenses} 
                 primaryAction={{ label: 'Add Expense', onClick: () => { setSelectedExpense(null); setModalOpen(true); } }}
