@@ -112,7 +112,7 @@ export const TasksPage = () => {
         };
     }, [tasks]);
 
-    // Filtered Data for the Table
+    // Filtered Data Logic
     const filteredTasks = useMemo(() => {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -159,7 +159,7 @@ export const TasksPage = () => {
 
     return (
         <Box sx={{ p: 2, bgcolor: '#fcfcfc', minHeight: '100vh' }}>
-            {/* Clickable Colored Stat Cards */}
+            {/* Clickable Stat Cards Row */}
             <Grid container spacing={1.5} sx={{ mb: 3 }}>
                 <StatCard 
                     label="Completed" 
@@ -198,7 +198,7 @@ export const TasksPage = () => {
             {activeFilter !== 'all' && (
                 <Box sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Chip 
-                        label={`FILTER: ${activeFilter.toUpperCase()}`} 
+                        label={`SHOWING: ${activeFilter.toUpperCase()}`} 
                         size="small" 
                         onDelete={() => setActiveFilter('all')}
                         sx={{ bgcolor: DARK_NAVY, color: '#fff', fontWeight: 700, fontSize: '0.65rem', '& .MuiChip-deleteIcon': { color: '#fff' } }}
@@ -252,7 +252,7 @@ export const TasksPage = () => {
     );
 };
 
-// Revised Colored StatCard Component
+// StatCard with Click functionality and persistent coloring
 const StatCard = ({ label, value, icon, color, active, onClick }: any) => (
     <Grid size={{ xs: 6, sm: 3 }}>
         <Paper 
@@ -261,21 +261,17 @@ const StatCard = ({ label, value, icon, color, active, onClick }: any) => (
             sx={{ 
                 p: 1.5, 
                 borderRadius: '10px', 
-                border: '1px solid',
-                borderColor: active ? color : alpha(color, 0.2), 
-                // Persistent background color
-                bgcolor: active ? alpha(color, 0.12) : alpha(color, 0.04),
-                cursor: 'pointer',
-                transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
-                transform: active ? 'scale(1.02)' : 'scale(1)',
-                boxShadow: active ? `0 6px 15px ${alpha(color, 0.15)}` : 'none',
-                position: 'relative',
-                overflow: 'hidden',
-                '&:hover': {
-                    bgcolor: alpha(color, 0.08),
-                    borderColor: color,
-                    transform: 'translateY(-3px)'
-                }
+                borderLeft: `3px solid ${color}`,
+                bgcolor: active ? alpha(color, 0.08) : alpha(color, 0.02),
+                cursor: onClick ? 'pointer' : 'default',
+                transition: 'all 0.2s ease-in-out',
+                transform: active ? 'translateY(-2px)' : 'none',
+                boxShadow: active ? `0 4px 12px ${alpha(color, 0.1)}` : 'none',
+                '&:hover': onClick ? {
+                    bgcolor: alpha(color, 0.1),
+                    transform: 'translateY(-3px)',
+                    boxShadow: `0 4px 12px ${alpha(color, 0.08)}`
+                } : {}
             }}
         >
             <Stack direction="row" spacing={1.5} alignItems="center">
@@ -285,16 +281,15 @@ const StatCard = ({ label, value, icon, color, active, onClick }: any) => (
                     bgcolor: active ? color : alpha(color, 0.1), 
                     color: active ? '#fff' : color, 
                     display: 'flex',
-                    boxShadow: active ? `0 4px 10px ${alpha(color, 0.3)}` : 'none',
-                    transition: 'all 0.3s'
+                    transition: '0.3s'
                 }}>
                     {icon}
                 </Box>
                 <Box>
-                    <Typography sx={{ fontWeight: 800, color: DARK_NAVY, fontSize: '1.05rem', lineHeight: 1.1 }}>
+                    <Typography sx={{ fontWeight: 800, color: DARK_NAVY, fontSize: '0.95rem', lineHeight: 1.1 }}>
                         {value}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.62rem', textTransform: 'uppercase', fontWeight: 700, letterSpacing: 0.5 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.62rem', textTransform: 'uppercase', fontWeight: 800, letterSpacing: 0.5 }}>
                         {label}
                     </Typography>
                 </Box>

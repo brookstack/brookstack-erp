@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo } from 'react';
 import { 
     Box, Typography, Paper, Chip, Stack, 
-     Grid, alpha, Dialog, DialogContent, IconButton, 
-    Tooltip, Snackbar, Alert, DialogTitle, DialogActions, Button, Divider
+    Grid, alpha, Dialog, DialogContent, IconButton, 
+    Tooltip, Snackbar, Alert, DialogTitle, DialogActions, Button
 } from '@mui/material';
 import axios from 'axios';
 
 // Icons
 import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import PieChartIcon from '@mui/icons-material/PieChart';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
@@ -21,8 +21,10 @@ import { ViewExpense } from '../components/Expenses/ViewExpense';
 import { API_BASE_URL } from '../config/api';
 
 const DARK_NAVY = '#1a202c';
+const CUSTOMER_NAVY = '#365fb3ff';
 const PRIMARY_RUST = '#b52841';
 const SUCCESS_GREEN = '#10b981';
+const WARNING_ORANGE = '#f59e0b';
 
 interface Expense {
     id: number;
@@ -30,7 +32,6 @@ interface Expense {
     amount: string | number;
     category: string;
     status: 'paid' | 'unpaid';
-    expense_date: string; // Kept in interface for stat calculations
     description?: string;
     document_url?: string;
 }
@@ -41,6 +42,9 @@ export const ExpensesPage = () => {
     const [modalOpen, setModalOpen] = useState<boolean>(false);
     const [viewOpen, setViewOpen] = useState<boolean>(false);
     const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
+
+    // Filtering State
+    const [activeFilter, setActiveFilter] = useState<string>('all');
 
     // UI Feedback States
     const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; data: Expense | null }>({ open: false, data: null });
@@ -64,45 +68,29 @@ export const ExpensesPage = () => {
 
     useEffect(() => { fetchExpenses(); }, []);
 
-    const handleEdit = (id: number | string) => {
-        const exp = expenses.find(e => String(e.id) === String(id));
-        if (exp) { setSelectedExpense(exp); setModalOpen(true); }
-    };
-
-    const handleConfirmDelete = async () => {
-        if (deleteConfirm.data) {
-            try {
-                await axios.delete(`${API_BASE_URL}/expenses/${deleteConfirm.data.id}`);
-                fetchExpenses();
-                showMessage('Expense record deleted');
-            } catch (err) {
-                showMessage('Delete failed: Server Error', 'error');
-            }
+    // Filtered Data Logic
+    const filteredExpenses = useMemo(() => {
+        switch(activeFilter) {
+            case 'paid': return expenses.filter(e => e.status === 'paid');
+            case 'unpaid': return expenses.filter(e => e.status === 'unpaid');
+            default: return expenses;
         }
-        setDeleteConfirm({ open: false, data: null });
-    };
+    }, [expenses, activeFilter]);
 
     const stats = useMemo(() => {
-        const now = new Date();
-        let total = 0, monthly = 0, unpaid = 0;
+        let total = 0, paidTotal = 0, unpaidTotal = 0;
         const categoryMap: Record<string, number> = {};
 
         expenses.forEach(exp => {
             const amt = parseFloat(exp.amount.toString());
-            const date = new Date(exp.expense_date);
             total += amt;
-            // Date logic still runs in background for stats
-            if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
-                monthly += amt;
-            }
-            if (exp.status === 'unpaid') {
-                unpaid += amt;
-            }
+            if (exp.status === 'paid') paidTotal += amt;
+            if (exp.status === 'unpaid') unpaidTotal += amt;
             categoryMap[exp.category] = (categoryMap[exp.category] || 0) + amt;
         });
 
         const topCat = Object.entries(categoryMap).sort((a, b) => b[1] - a[1])[0];
-        return { total, monthly, unpaid, topCategory: topCat ? topCat[0] : 'N/A' };
+        return { total, paidTotal, unpaidTotal, topCategory: topCat ? topCat[0] : 'N/A' };
     }, [expenses]);
 
     const columns = [
@@ -133,8 +121,8 @@ export const ExpensesPage = () => {
                     size="small" 
                     sx={{ 
                         fontSize: '0.55rem', height: 18, fontWeight: 800,
-                        bgcolor: row.status === 'paid' ? alpha('#198754', 0.1) : alpha(PRIMARY_RUST, 0.1),
-                        color: row.status === 'paid' ? '#198754' : PRIMARY_RUST,
+                        bgcolor: row.status === 'paid' ? alpha(SUCCESS_GREEN, 0.1) : alpha(PRIMARY_RUST, 0.1),
+                        color: row.status === 'paid' ? SUCCESS_GREEN : PRIMARY_RUST,
                     }} 
                 />
             ) 
@@ -143,21 +131,10 @@ export const ExpensesPage = () => {
             id: 'document_url', 
             label: 'DOC', 
             render: (row: Expense) => row.document_url ? (
-                <Tooltip title="Download Receipt">
-                    <IconButton 
-                        size="small" 
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            window.open(row.document_url, '_blank');
-                        }}
-                        sx={{ color: '#64748b', '&:hover': { color: PRIMARY_RUST } }}
-                    >
-                        <DownloadForOfflineIcon sx={{ fontSize: '1.1rem' }} />
-                    </IconButton>
-                </Tooltip>
-            ) : (
-                <Typography sx={{ fontSize: '0.7rem', color: '#ccc' }}>—</Typography>
-            )
+                <IconButton size="small" onClick={(e) => { e.stopPropagation(); window.open(row.document_url, '_blank'); }}>
+                    <DownloadForOfflineIcon sx={{ fontSize: '1.1rem', color: '#64748b' }} />
+                </IconButton>
+            ) : <Typography sx={{ fontSize: '0.7rem', color: '#ccc' }}>—</Typography>
         },
         { 
             id: 'amount', 
@@ -172,20 +149,61 @@ export const ExpensesPage = () => {
 
     return (
         <Box sx={{ p: 2, bgcolor: '#fcfcfc', minHeight: '100vh' }}>
-            {/* Stat Row */}
+            {/* Clickable Stat Cards */}
             <Grid container spacing={1.5} sx={{ mb: 3 }}>
-                <StatCard label="Total Lifetime" value={`KSh ${stats.total.toLocaleString()}`} icon={<AccountBalanceWalletIcon sx={{fontSize:18}}/>} color={DARK_NAVY} />
-                <StatCard label="Monthly Burn" value={`KSh ${stats.monthly.toLocaleString()}`} icon={<CalendarMonthIcon sx={{fontSize:18}}/>} color={PRIMARY_RUST} />
-                <StatCard label="Total Unpaid" value={`KSh ${stats.unpaid.toLocaleString()}`} icon={<TrendingDownIcon sx={{fontSize:18}}/>} color="#f59e0b" />
-                <StatCard label="Highest Type" value={stats.topCategory} icon={<PieChartIcon sx={{fontSize:18}}/>} color={SUCCESS_GREEN} />
+                <StatCard 
+                    label="Total Ledger" 
+                    value={`KSh ${stats.total.toLocaleString()}`} 
+                    icon={<AccountBalanceWalletIcon sx={{fontSize:18}}/>} 
+                    color={CUSTOMER_NAVY}
+                    active={activeFilter === 'all'}
+                    onClick={() => setActiveFilter('all')}
+                />
+                <StatCard 
+                    label="Paid Expenses" 
+                    value={`KSh ${stats.paidTotal.toLocaleString()}`} 
+                    icon={<CheckCircleIcon sx={{fontSize:18}}/>} 
+                    color={SUCCESS_GREEN}
+                    active={activeFilter === 'paid'}
+                    onClick={() => setActiveFilter(activeFilter === 'paid' ? 'all' : 'paid')}
+                />
+                <StatCard 
+                    label="Unpaid Dues" 
+                    value={`KSh ${stats.unpaidTotal.toLocaleString()}`} 
+                    icon={<TrendingDownIcon sx={{fontSize:18}}/>} 
+                    color={PRIMARY_RUST}
+                    active={activeFilter === 'unpaid'}
+                    onClick={() => setActiveFilter(activeFilter === 'unpaid' ? 'all' : 'unpaid')}
+                />
+                <StatCard 
+                    label="Top Category" 
+                    value={stats.topCategory} 
+                    icon={<PieChartIcon sx={{fontSize:18}}/>} 
+                    color={WARNING_ORANGE} 
+                    onClick={() => {}} // Category filtering can be added here
+                />
             </Grid>
+
+            {activeFilter !== 'all' && (
+                <Box sx={{ mb: 2 }}>
+                    <Chip 
+                        label={`VIEWING: ${activeFilter.toUpperCase()}`} 
+                        size="small" 
+                        onDelete={() => setActiveFilter('all')}
+                        sx={{ bgcolor: DARK_NAVY, color: '#fff', fontWeight: 700, fontSize: '0.65rem' }}
+                    />
+                </Box>
+            )}
 
             <DataTable 
                 title="Expense Ledger" 
                 columns={columns} 
-                data={expenses} 
+                data={filteredExpenses} 
                 primaryAction={{ label: 'Add Expense', onClick: () => { setSelectedExpense(null); setModalOpen(true); } }}
-                onEdit={handleEdit} 
+                onEdit={(id) => {
+                    const exp = expenses.find(e => String(e.id) === String(id));
+                    if (exp) { setSelectedExpense(exp); setModalOpen(true); }
+                }} 
                 onDelete={(id) => setDeleteConfirm({ open: true, data: expenses.find(e => String(e.id) === String(id)) || null })}
                 onView={(id) => {
                     const exp = expenses.find(e => String(e.id) === String(id));
@@ -194,50 +212,39 @@ export const ExpensesPage = () => {
             />
 
             {/* Delete Popup */}
-            <Dialog 
-                open={deleteConfirm.open} 
-                onClose={() => setDeleteConfirm({ open: false, data: null })}
-                PaperProps={{ sx: { borderRadius: '12px', width: '100%', maxWidth: '350px' } }}
-            >
+            <Dialog open={deleteConfirm.open} onClose={() => setDeleteConfirm({ open: false, data: null })} PaperProps={{ sx: { borderRadius: '12px', width: '350px' } }}>
                 <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700, color: PRIMARY_RUST, pb: 1 }}>
                     <WarningAmberIcon /> Confirm Delete
                 </DialogTitle>
                 <DialogContent>
                     <Typography sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
-                        Remove <strong>{deleteConfirm.data?.title}</strong>? This cannot be undone.
+                        Remove <strong>{deleteConfirm.data?.title}</strong>? This action is permanent.
                     </Typography>
                 </DialogContent>
                 <DialogActions sx={{ p: 2, pt: 0 }}>
                     <Button onClick={() => setDeleteConfirm({ open: false, data: null })} sx={{ color: 'text.secondary', textTransform: 'none' }}>Cancel</Button>
-                    <Button onClick={handleConfirmDelete} variant="contained" sx={{ bgcolor: PRIMARY_RUST, textTransform: 'none', px: 3 }}>Delete</Button>
+                    <Button onClick={() => {}} variant="contained" sx={{ bgcolor: PRIMARY_RUST, textTransform: 'none' }}>Delete</Button>
                 </DialogActions>
             </Dialog>
 
             {/* Add/Edit Modal */}
             <Dialog open={modalOpen} onClose={() => setModalOpen(false)} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '12px' } }}>
-                <Box sx={{ p: 2, px: 3, borderBottom: '1px solid #eee' }}>
-                    <Typography sx={{ fontWeight: 700, fontSize: '0.95rem' }}>
-                        {selectedExpense ? 'Update Expense' : 'New Expense Entry'}
+                <Box sx={{ p: 3 }}>
+                    <Typography sx={{ fontWeight: 700, color: DARK_NAVY, mb: 2, fontSize: '1.1rem' }}>
+                        {selectedExpense ? 'Update Expense Details' : 'Record New Expense'}
                     </Typography>
-                </Box>
-                <DialogContent sx={{ p: 3 }}>
                     <AddExpenseForm 
                         onSuccess={() => { fetchExpenses(); setModalOpen(false); showMessage('Ledger Updated'); }} 
                         onClose={() => setModalOpen(false)} 
                         initialData={selectedExpense} 
                     />
-                </DialogContent>
+                </Box>
             </Dialog>
             
             <ViewExpense open={viewOpen} onClose={() => {setViewOpen(false); setSelectedExpense(null);}} data={selectedExpense} />
 
-            <Snackbar 
-                open={snackbar.open} 
-                autoHideDuration={4000} 
-                onClose={() => setSnackbar({ ...snackbar, open: false })}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            >
-                <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} variant="filled" sx={{ width: '100%', borderRadius: '8px', fontWeight: 600 }}>
+            <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}>
+                <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} variant="filled" sx={{ borderRadius: '8px', fontWeight: 600 }}>
                     {snackbar.message}
                 </Alert>
             </Snackbar>
@@ -245,14 +252,46 @@ export const ExpensesPage = () => {
     );
 };
 
-const StatCard = ({ label, value, icon, color }: any) => (
+// Reusable Clickable Stat Card
+const StatCard = ({ label, value, icon, color, active, onClick }: any) => (
     <Grid size={{ xs: 6, sm: 3 }}>
-        <Paper variant="outlined" sx={{ p: 1.5, borderRadius: '8px', borderLeft: `4px solid ${color}`, display: 'flex', alignItems: 'center', bgcolor: '#fff' }}>
+        <Paper 
+            variant="outlined" 
+            onClick={onClick}
+            sx={{ 
+                p: 1.5, 
+                borderRadius: '10px', 
+                borderLeft: `3px solid ${color}`,
+                bgcolor: active ? alpha(color, 0.08) : alpha(color, 0.02),
+                cursor: onClick ? 'pointer' : 'default',
+                transition: 'all 0.2s ease-in-out',
+                transform: active ? 'translateY(-2px)' : 'none',
+                boxShadow: active ? `0 4px 12px ${alpha(color, 0.1)}` : 'none',
+                '&:hover': onClick ? {
+                    bgcolor: alpha(color, 0.1),
+                    transform: 'translateY(-3px)',
+                    boxShadow: `0 4px 12px ${alpha(color, 0.08)}`
+                } : {}
+            }}
+        >
             <Stack direction="row" spacing={1.5} alignItems="center">
-                <Box sx={{ p: 0.8, borderRadius: '6px', bgcolor: alpha(color, 0.08), color: color, display: 'flex' }}>{icon}</Box>
+                <Box sx={{ 
+                    p: 0.8, 
+                    borderRadius: '8px', 
+                    bgcolor: active ? color : alpha(color, 0.1), 
+                    color: active ? '#fff' : color, 
+                    display: 'flex',
+                    transition: '0.3s'
+                }}>
+                    {icon}
+                </Box>
                 <Box>
-                    <Typography sx={{ fontWeight: 700, color: DARK_NAVY, fontSize: '0.9rem', lineHeight: 1.1 }}>{value}</Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.62rem', textTransform: 'uppercase', fontWeight: 700 }}>{label}</Typography>
+                    <Typography sx={{ fontWeight: 700, color: DARK_NAVY, fontSize: '0.9rem', lineHeight: 1.1 }}>
+                        {value}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.62rem', textTransform: 'uppercase', fontWeight: 800, letterSpacing: 0.5 }}>
+                        {label}
+                    </Typography>
                 </Box>
             </Stack>
         </Paper>

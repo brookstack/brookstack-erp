@@ -1,30 +1,29 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Box, TextField, Button, Stack, Stepper, Step, 
+  Box, TextField, Button, Stack, Stepper, Step,
   StepLabel, MenuItem, Grid, Alert, CircularProgress, alpha,
-  Typography, Chip
+  Typography, Radio, RadioGroup, FormControlLabel, FormControl, FormLabel
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { API_BASE_URL } from '../../config/api';
 
 const RUST_COLOR = '#b52841';
 const DARK_NAVY = "#1a202c";
-const SUCCESS_GREEN = '#198754';
 
 interface Expense {
-    id: number;
-    title: string;
-    amount: string | number;
-    category: string;
-    status: 'paid' | 'unpaid';
-    description?: string;
-    document_url?: string;
+  id: number;
+  title: string;
+  amount: string | number;
+  category: string;
+  status: 'paid' | 'unpaid';
+  description?: string;
+  document_url?: string;
 }
 
 interface FormProps {
   onSuccess: () => void;
   onClose: () => void;
-  initialData?: Expense | null; 
+  initialData?: Expense | null;
 }
 
 export const AddExpenseForm: React.FC<FormProps> = ({ onSuccess, onClose, initialData }) => {
@@ -33,14 +32,13 @@ export const AddExpenseForm: React.FC<FormProps> = ({ onSuccess, onClose, initia
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
 
-  // Removed expense_date from state
   const [formData, setFormData] = useState({
     category: '',
-    title: '', 
+    title: '',
     amount: '',
     description: '',
     status: 'unpaid' as 'paid' | 'unpaid',
-    document_url: '', 
+    document_url: '',
   });
 
   useEffect(() => {
@@ -50,13 +48,13 @@ export const AddExpenseForm: React.FC<FormProps> = ({ onSuccess, onClose, initia
         title: initialData.title || '',
         amount: initialData.amount?.toString() || '',
         description: initialData.description || '',
-        status: initialData.status || 'unpaid',
+        status: initialData.status || 'paid',
         document_url: initialData.document_url || '',
       });
     }
   }, [initialData]);
 
-  const steps = ['Classification & Files', 'Financials'];
+  const steps = ['Classification', 'Financials'];
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -93,121 +91,123 @@ export const AddExpenseForm: React.FC<FormProps> = ({ onSuccess, onClose, initia
 
   return (
     <Box sx={{ width: '100%' }}>
-      {error && <Alert severity="error" sx={{ mb: 2, fontSize: '0.85rem' }}>{error}</Alert>}
+      {error && <Alert severity="error" sx={{ mb: 2, py: 0, fontSize: '0.8rem' }}>{error}</Alert>}
 
-      <Stepper activeStep={activeStep} alternativeLabel sx={{ mb: 4 }}>
+      <Stepper activeStep={activeStep} sx={{ mb: 3 }}>
         {steps.map((label) => (
           <Step key={label}>
             <StepLabel>
-              <Typography sx={{ fontSize: '0.7rem', fontWeight: 800, color: DARK_NAVY }}>{label}</Typography>
+              <Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }}>{label}</Typography>
             </StepLabel>
           </Step>
         ))}
       </Stepper>
 
-      <Box sx={{ minHeight: '260px' }}>
+      <Box sx={{ minHeight: '200px' }}>
         {activeStep === 0 && (
-          <Grid container spacing={2}>
+          <Grid container spacing={1.5}>
             <Grid size={12}>
-              <TextField 
-                select fullWidth size="small" label="Expense Category"
+              <TextField
+                select fullWidth size="small" label="Category"
                 value={formData.category}
-                onChange={(e) => setFormData({...formData, category: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                slotProps={{ select: { sx: { fontSize: '0.85rem' } }, inputLabel: { sx: { fontSize: '0.85rem' } } }}
               >
                 {['Rent & Utilities', 'Payroll', 'Software Expenses', 'Office Admin', 'Miscellaneous'].map(opt => (
-                  <MenuItem key={opt} value={opt} sx={{ fontSize: '0.8rem' }}>{opt}</MenuItem>
+                  <MenuItem key={opt} value={opt} sx={{ fontSize: '0.85rem' }}>{opt}</MenuItem>
                 ))}
               </TextField>
             </Grid>
             <Grid size={12}>
-              <TextField 
-                fullWidth size="small" label="Expense Title / Subject"
-                placeholder="e.g. Server Hosting"
+              <TextField
+                fullWidth size="small" label="Title / Subject"
                 value={formData.title}
-                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                slotProps={{ input: { sx: { fontSize: '0.85rem' } }, inputLabel: { sx: { fontSize: '0.85rem' } } }}
               />
             </Grid>
             <Grid size={12}>
-              <TextField 
-                fullWidth size="small" label="Description" multiline rows={2}
+              <TextField
+                fullWidth size="small" label="Description (Optional)" multiline rows={2}
                 value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                slotProps={{ input: { sx: { fontSize: '0.85rem' } }, inputLabel: { sx: { fontSize: '0.85rem' } } }}
               />
             </Grid>
             <Grid size={12}>
-              <Box 
-                sx={{ 
-                  border: '2px dashed #e2e8f0', p: 2, textAlign: 'center', borderRadius: '12px',
-                  bgcolor: '#f8fafc', cursor: 'pointer', transition: '0.2s',
+              <Box
+                sx={{
+                  border: '1.5px dashed #cbd5e1', p: 1.5, textAlign: 'center', borderRadius: '8px',
+                  bgcolor: '#f8fafc', cursor: 'pointer',
                   '&:hover': { bgcolor: alpha(RUST_COLOR, 0.05), borderColor: RUST_COLOR }
                 }}
                 onClick={() => document.getElementById('file-input')?.click()}
               >
-                <CloudUploadIcon sx={{ color: '#64748b', mb: 1 }} />
-                <Typography sx={{ fontSize: '0.7rem', fontWeight: 700, color: DARK_NAVY }}>
-                  {fileName ? fileName : 'Attach Receipt (Optional)'}
-                </Typography>
-                <input type="file" id="file-input" hidden onChange={handleFileChange} accept=".pdf,.doc,.docx,.jpg,.png" />
+                <Stack direction="row" spacing={1} justifyContent="center" alignItems="center">
+                  <CloudUploadIcon sx={{ color: '#64748b', fontSize: '1.2rem' }} />
+                  <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: DARK_NAVY }}>
+                    {fileName ? fileName : 'Upload Receipt'}
+                  </Typography>
+                </Stack>
+                <input type="file" id="file-input" hidden onChange={handleFileChange} />
               </Box>
             </Grid>
           </Grid>
         )}
 
         {activeStep === 1 && (
-          <Grid container spacing={3}>
+          <Grid container spacing={2}>
             <Grid size={12}>
-              <TextField 
-                fullWidth label="Amount (KSh)" type="number"
+              <TextField
+                fullWidth size="small" label="Amount (KSh)" type="number"
                 value={formData.amount}
-                onChange={(e) => setFormData({...formData, amount: e.target.value})}
-                slotProps={{ input: { sx: { fontWeight: 800, fontSize: '1.2rem' } } }}
+                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                slotProps={{ input: { sx: { fontSize: '0.85rem', fontWeight: 600 } }, inputLabel: { sx: { fontSize: '0.85rem' } } }}
               />
             </Grid>
             <Grid size={12}>
-              <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.secondary', display: 'block', mb: 1.5 }}>
-                SET PAYMENT STATUS
-              </Typography>
-              <Stack direction="row" spacing={2}>
-                {(['paid', 'unpaid'] as const).map((status) => (
-                  <Chip
-                    key={status}
-                    label={status.toUpperCase()}
-                    onClick={() => setFormData({...formData, status})}
-                    sx={{
-                      px: 2, fontWeight: 900, fontSize: '0.65rem',
-                      bgcolor: formData.status === status 
-                        ? (status === 'paid' ? SUCCESS_GREEN : RUST_COLOR) 
-                        : alpha('#ccc', 0.2),
-                      color: formData.status === status ? '#fff' : '#666',
-                      '&:hover': { opacity: 0.8 },
-                      transition: '0.2s'
-                    }}
+              <FormControl component="fieldset">
+                <FormLabel sx={{ fontSize: '0.75rem', fontWeight: 700, mb: 0.5, color: DARK_NAVY }}>PAYMENT STATUS</FormLabel>
+                <RadioGroup
+                  row
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'paid' | 'unpaid' })}
+                ><FormControlLabel
+                    value="paid"
+                    control={<Radio size="small" sx={{ '&.Mui-checked': { color: '#198754' } }} />}
+                    label={<Typography sx={{ fontSize: '0.85rem' }}>Paid</Typography>}
                   />
-                ))}
-              </Stack>
+                  <FormControlLabel
+                    value="unpaid"
+                    control={<Radio size="small" sx={{ '&.Mui-checked': { color: RUST_COLOR } }} />}
+                    label={<Typography sx={{ fontSize: '0.85rem' }}>Unpaid</Typography>}
+                  />
+
+                </RadioGroup>
+              </FormControl>
             </Grid>
-            {/* Date Display Removed here */}
           </Grid>
         )}
       </Box>
 
-      <Stack direction="row" justifyContent="space-between" sx={{ mt: 4, pt: 2, borderTop: '1px solid #eee' }}>
-        <Button 
+      <Stack direction="row" spacing={1} justifyContent="flex-end" sx={{ mt: 3 }}>
+        <Button
           onClick={activeStep === 0 ? onClose : () => setActiveStep(0)}
-          sx={{ fontWeight: 700, color: DARK_NAVY, textTransform: 'none' }}
+          sx={{ fontWeight: 700, color: 'text.secondary', textTransform: 'none', fontSize: '0.85rem' }}
         >
           {activeStep === 0 ? 'Cancel' : 'Back'}
         </Button>
-        <Button 
-          variant="contained" 
+        <Button
+          variant="contained"
+          disableElevation
           disabled={loading || !isStepValid()}
           onClick={activeStep === 0 ? () => setActiveStep(1) : handleSubmit}
-          sx={{ 
-            bgcolor: RUST_COLOR, '&:hover': { bgcolor: '#9a2237' }, 
-            fontWeight: 800, px: 4, textTransform: 'none', borderRadius: '8px' 
+          sx={{
+            bgcolor: RUST_COLOR, fontWeight: 700, px: 3, textTransform: 'none',
+            borderRadius: '6px', fontSize: '0.85rem'
           }}
         >
-          {loading ? <CircularProgress size={24} color="inherit" /> : activeStep === 0 ? 'Continue' : 'Confirm & Save'}
+          {loading ? <CircularProgress size={20} color="inherit" /> : activeStep === 0 ? 'Next' : 'Save Expense'}
         </Button>
       </Stack>
     </Box>

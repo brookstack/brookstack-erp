@@ -1,14 +1,17 @@
-import  { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
     Box, Chip, alpha, Dialog, DialogContent, IconButton,
     Typography, Stack, CircularProgress, Snackbar, Alert, Button,
-    DialogTitle, DialogActions
+    DialogTitle, DialogActions, Grid, Paper
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import FilterListOffIcon from '@mui/icons-material/FilterListOff';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import GroupsIcon from '@mui/icons-material/Groups';
+import ToggleOnIcon from '@mui/icons-material/ToggleOn';
+import HubIcon from '@mui/icons-material/Hub';
+import PersonOffIcon from '@mui/icons-material/PersonOff';
 
 // Components
 import { DataTable } from '../components/DataTable';
@@ -22,6 +25,9 @@ const API_BASE_URL = window.location.hostname === 'localhost'
 
 const PRIMARY_RUST = '#b52841';
 const DARK_NAVY = '#1a202c';
+const CUSTOMER_NAVY = '#365fb3ff';
+const SUCCESS_GREEN = '#2ecc71';
+const LEAD_BLUE = '#0ea5e9';
 const SANS_STACK = 'ui-sans-serif, system-ui, sans-serif';
 
 export const CustomersPage = () => {
@@ -50,7 +56,7 @@ export const CustomersPage = () => {
         try {
             const response = await fetch(`${API_BASE_URL}/customers`);
             const data = await response.json();
-            setCustomers(data);
+            setCustomers(Array.isArray(data) ? data : []);
         } catch (error) {
             setSnackbar({ open: true, message: 'Failed to fetch clients', severity: 'error' });
         } finally {
@@ -60,18 +66,25 @@ export const CustomersPage = () => {
 
     useEffect(() => { fetchCustomers(); }, [fetchCustomers]);
 
+    // Statistics Calculation for Cards
+    const stats = useMemo(() => {
+        return {
+            total: customers.length,
+            active: customers.filter(c => c.status?.toLowerCase() === 'active').length,
+            leads: customers.filter(c => c.status?.toLowerCase() === 'lead').length,
+            inactive: customers.filter(c => c.status?.toLowerCase() === 'inactive').length,
+        };
+    }, [customers]);
+
     const filteredCustomers = useMemo(() => {
         if (!statusFilter) return customers;
         return customers.filter(c => c.status?.toLowerCase() === statusFilter.toLowerCase());
     }, [customers, statusFilter]);
 
-    // Helper for Human-Readable Date
     const formatHumanDate = (dateString: string) => {
         if (!dateString) return '-';
         return new Intl.DateTimeFormat('en-GB', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric'
+            day: '2-digit', month: 'short', year: 'numeric'
         }).format(new Date(dateString));
     };
 
@@ -92,21 +105,16 @@ export const CustomersPage = () => {
 
     const handleActualDelete = async () => {
         if (!deleteConfirm.data) return;
-        const { id, companyName } = deleteConfirm.data;
         setIsDeleting(true);
         try {
-            const response = await fetch(`${API_BASE_URL}/customers/${id}`, { method: 'DELETE' });
+            const response = await fetch(`${API_BASE_URL}/customers/${deleteConfirm.data.id}`, { method: 'DELETE' });
             if (response.ok) {
                 setDeleteConfirm({ open: false, data: null });
-                setSnackbar({ open: true, message: `Successfully removed "${companyName}"`, severity: 'success' });
+                setSnackbar({ open: true, message: `Successfully removed client`, severity: 'success' });
                 fetchCustomers();
-            } else {
-                setSnackbar({ open: true, message: 'Failed to delete client. Linked records may exist.', severity: 'error' });
-                setDeleteConfirm({ open: false, data: null });
             }
         } catch (error) {
             setSnackbar({ open: true, message: 'Connection error', severity: 'error' });
-            setDeleteConfirm({ open: false, data: null });
         } finally {
             setIsDeleting(false);
         }
@@ -126,33 +134,16 @@ export const CustomersPage = () => {
             ) 
         },
         { id: 'companyName', label: 'COMPANY NAME' },
-        { 
-            id: 'clientType', 
-            label: 'CLIENT TYPE',
-            render: (row: any) => (
-                <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b' }}>
-                    {row.clientType}
-                </Typography>
-            )
-        },
-        { 
-            id: 'serviceCategory', 
-            label: 'CATEGORY',
-            render: (row: any) => (
-                <Typography sx={{ fontSize: '0.75rem', fontWeight: 500, color: '#64748b' }}>
-                    {row.serviceCategory}
-                </Typography>
-            )
-        },
+        { id: 'clientType', label: 'CLIENT TYPE' },
         { id: 'accountManager', label: 'MANAGER' },
         {
             id: 'status',
             label: 'STATUS',
             render: (row: any) => {
                 const statusConfig: any = {
-                    active: { color: '#2ecc71', bg: alpha('#2ecc71', 0.1) },
-                    lead: { color: '#0ea5e9', bg: alpha('#0ea5e9', 0.1) },
-                    inactive: { color: '#b52841', bg: alpha('#b52841', 0.1) },
+                    active: { color: SUCCESS_GREEN, bg: alpha(SUCCESS_GREEN, 0.1) },
+                    lead: { color: LEAD_BLUE, bg: alpha(LEAD_BLUE, 0.1) },
+                    inactive: { color: PRIMARY_RUST, bg: alpha(PRIMARY_RUST, 0.1) },
                 };
                 const config = statusConfig[row.status?.toLowerCase()] || { color: '#8a92a6', bg: '#f1f1f1' };
                 return <Chip label={row.status?.toUpperCase()} size="small" sx={{ fontWeight: 800, fontSize: '0.6rem', backgroundColor: config.bg, color: config.color, borderRadius: '4px' }} />;
@@ -161,21 +152,37 @@ export const CustomersPage = () => {
     ];
 
     return (
-        <Box sx={{ width: '100%', p: viewMode ? 0 : 3 }}>
+        <Box sx={{ width: '100%', p: viewMode ? 0 : 3, bgcolor: '#fcfcfc', minHeight: '100vh' }}>
+            
+            {!viewMode && (
+                <Grid container spacing={2} sx={{ mb: 4 }}>
+                    <StatCard 
+                        label="Total Clients" value={stats.total} icon={<GroupsIcon sx={{fontSize: 18}}/>} color={CUSTOMER_NAVY} 
+                        active={!statusFilter} onClick={() => setSearchParams({})}
+                    />
+                    <StatCard 
+                        label="Active Clients" value={stats.active} icon={<ToggleOnIcon sx={{fontSize: 18}}/>} color={SUCCESS_GREEN} 
+                        active={statusFilter === 'active'} onClick={() => setSearchParams({status: 'active'})}
+                    />
+                    <StatCard 
+                        label="Client Leads" value={stats.leads} icon={<HubIcon sx={{fontSize: 18}}/>} color={LEAD_BLUE} 
+                        active={statusFilter === 'lead'} onClick={() => setSearchParams({status: 'lead'})}
+                    />
+                    <StatCard 
+                        label="Inactive" value={stats.inactive} icon={<PersonOffIcon sx={{fontSize: 18}}/>} color={PRIMARY_RUST} 
+                        active={statusFilter === 'inactive'} onClick={() => setSearchParams({status: 'inactive'})}
+                    />
+                </Grid>
+            )}
+
             {!viewMode && statusFilter && (
-                <Stack direction="row" alignItems="center" spacing={2} sx={{ mb: 2, p: 1.5, bgcolor: alpha(PRIMARY_RUST, 0.05), borderRadius: '8px', border: `1px solid ${alpha(PRIMARY_RUST, 0.1)}` }}>
-                    <Typography variant="body2" sx={{ fontWeight: 600, color: DARK_NAVY }}>
-                        Filtering by: <span style={{ color: PRIMARY_RUST }}>{statusFilter.toUpperCase()}</span>
-                    </Typography>
-                    <Button 
-                        size="small" 
-                        startIcon={<FilterListOffIcon />} 
-                        onClick={() => setSearchParams({})} 
-                        sx={{ color: PRIMARY_RUST, textTransform: 'none', fontWeight: 700 }}
-                    >
-                        Clear Filter
-                    </Button>
-                </Stack>
+                <Box sx={{ mb: 2 }}>
+                    <Chip 
+                        label={`FILTER: ${statusFilter.toUpperCase()}`} 
+                        size="small" onDelete={() => setSearchParams({})}
+                        sx={{ bgcolor: DARK_NAVY, color: '#fff', fontWeight: 700, fontSize: '0.65rem' }}
+                    />
+                </Box>
             )}
 
             {loading ? (
@@ -187,7 +194,7 @@ export const CustomersPage = () => {
                 />
             ) : (
                 <DataTable
-                    title="Clients"
+                    title="Client Ledger"
                     columns={columns}
                     data={filteredCustomers}
                     primaryAction={{
@@ -200,51 +207,61 @@ export const CustomersPage = () => {
                 />
             )}
 
-            {/* Delete Confirmation */}
-            <Dialog open={deleteConfirm.open} onClose={() => !isDeleting && setDeleteConfirm({ open: false, data: null })} maxWidth="xs" fullWidth>
-                <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#d32f2f', fontWeight: 800, fontFamily: SANS_STACK }}>
+            {/* Modals & Dialogs */}
+            <Dialog open={deleteConfirm.open} onClose={() => !isDeleting && setDeleteConfirm({ open: false, data: null })} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: '15px' } }}>
+                <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: PRIMARY_RUST, fontWeight: 800 }}>
                     <WarningAmberIcon color="error" /> Confirm Deletion
                 </DialogTitle>
                 <DialogContent>
-                    <Typography sx={{ fontSize: '0.9rem', color: '#4b5563' }}>
-                        Are you sure you want to delete <strong>{deleteConfirm.data?.companyName}</strong>?
-                    </Typography>
+                    <Typography sx={{ fontSize: '0.9rem' }}>Are you sure you want to delete <strong>{deleteConfirm.data?.companyName}</strong>?</Typography>
                 </DialogContent>
-                <DialogActions sx={{ p: 2, pt: 0 }}>
-                    <Button disabled={isDeleting} onClick={() => setDeleteConfirm({ open: false, data: null })} variant="outlined" sx={{ color: DARK_NAVY, fontWeight: 700 }}>Cancel</Button>
-                    <Button disabled={isDeleting} onClick={handleActualDelete} variant="contained" sx={{ bgcolor: '#d32f2f', fontWeight: 700 }}>
-                        {isDeleting ? <CircularProgress size={20} color="inherit" /> : 'Delete'}
-                    </Button>
+                <DialogActions sx={{ p: 2 }}>
+                    <Button disabled={isDeleting} onClick={() => setDeleteConfirm({ open: false, data: null })}>Cancel</Button>
+                    <Button disabled={isDeleting} onClick={handleActualDelete} variant="contained" sx={{ bgcolor: PRIMARY_RUST }}>Delete</Button>
                 </DialogActions>
             </Dialog>
 
-            {/* Feedback Notifications */}
-            <Snackbar open={snackbar.open} autoHideDuration={6000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
-                <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} variant="filled" sx={{ width: '100%', fontWeight: 600 }}>
-                    {snackbar.message}
-                </Alert>
-            </Snackbar>
-
-            {/* Add/Edit Modal */}
             <Dialog open={modalOpen} onClose={() => { setModalOpen(false); setEditData(null); }} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: '20px' } }}>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid #f1f5f9' }}>
-                    <Typography variant="h6" sx={{ fontWeight: 800, color: DARK_NAVY, fontFamily: SANS_STACK }}>
-                        {editData ? `Edit Client: ${editData.companyName}` : 'Onboard New Client'}
+                    <Typography variant="h6" sx={{ fontWeight: 800, color: DARK_NAVY }}>
+                        {editData ? 'Edit Client Details' : 'Onboard New Client'}
                     </Typography>
                     <IconButton onClick={() => { setModalOpen(false); setEditData(null); }}><CloseIcon /></IconButton>
                 </Stack>
                 <DialogContent sx={{ py: 3 }}>
-                    <AddCustomerForm
-                        initialData={editData}
-                        onSuccess={() => {
-                            setModalOpen(false);
-                            setEditData(null);
-                            fetchCustomers();
-                            setSnackbar({ open: true, message: editData ? 'Client details updated' : 'New client onboarded', severity: 'success' });
-                        }}
-                    />
+                    <AddCustomerForm initialData={editData} onSuccess={() => { setModalOpen(false); setEditData(null); fetchCustomers(); }} />
                 </DialogContent>
             </Dialog>
+
+            <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={() => setSnackbar({ ...snackbar, open: false })} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+                <Alert severity={snackbar.severity} variant="filled" sx={{ fontWeight: 600 }}>{snackbar.message}</Alert>
+            </Snackbar>
         </Box>
     );
 };
+
+const StatCard = ({ label, value, icon, color, active, onClick }: any) => (
+    <Grid size={{ xs: 6, sm: 3 }}>
+        <Paper 
+            variant="outlined" onClick={onClick}
+            sx={{ 
+                p: 2, borderRadius: '12px', borderLeft: `4px solid ${color}`,
+                bgcolor: active ? alpha(color, 0.08) : alpha(color, 0.02),
+                cursor: 'pointer', transition: 'all 0.2s ease',
+                transform: active ? 'translateY(-2px)' : 'none',
+                boxShadow: active ? `0 4px 12px ${alpha(color, 0.1)}` : 'none',
+                '&:hover': { bgcolor: alpha(color, 0.1), transform: 'translateY(-3px)' }
+            }}
+        >
+            <Stack direction="row" spacing={1.5} alignItems="center">
+                <Box sx={{ p: 1, borderRadius: '8px', bgcolor: active ? color : alpha(color, 0.1), color: active ? '#fff' : color, display: 'flex' }}>
+                    {icon}
+                </Box>
+                <Box>
+                    <Typography sx={{ fontWeight: 800, color: DARK_NAVY, fontSize: '1.1rem', lineHeight: 1 }}>{value}</Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.62rem', textTransform: 'uppercase', fontWeight: 800, letterSpacing: 0.5 }}>{label}</Typography>
+                </Box>
+            </Stack>
+        </Paper>
+    </Grid>
+);
