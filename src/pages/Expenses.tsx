@@ -15,6 +15,7 @@ import DownloadForOfflineIcon from '@mui/icons-material/DownloadForOffline';
 import { DataTable } from '../components/DataTable';
 import { AddExpenseForm } from '../components/Expenses/AddExpense';
 import { ViewExpense } from '../components/Expenses/ViewExpense';
+import { API_BASE_URL } from '../config/api';
 
 const DARK_NAVY = '#1a202c';
 const PRIMARY_RUST = '#b52841';
@@ -40,7 +41,7 @@ export const ExpensesPage = () => {
     const fetchExpenses = async () => {
         setLoading(true);
         try {
-            const res = await axios.get('http://localhost:5000/api/expenses');
+            const res = await axios.get(`${API_BASE_URL}/expenses`);
             setExpenses(res.data);
         } catch (err) {
             console.error("Fetch failed", err);
@@ -59,7 +60,7 @@ export const ExpensesPage = () => {
     const handleDelete = async (id: number | string) => {
         if (window.confirm("Permanently delete this record?")) {
             try {
-                await axios.delete(`http://localhost:5000/api/expenses/${id}`);
+                await axios.delete(`${API_BASE_URL}/api/expenses/${id}`);
                 fetchExpenses();
             } catch (err) { console.error(err); }
         }

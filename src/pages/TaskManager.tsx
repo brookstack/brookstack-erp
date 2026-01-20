@@ -36,7 +36,7 @@ export const TasksPage = () => {
 
     const fetchTasks = async () => {
         try {
-            const res = await axios.get(API_BASE_URL);
+            const res = await axios.get(`${API_BASE_URL}/tasks`);
             setTasks(res.data);
         } catch (err) {
             setSnackbar({ open: true, message: 'Server Connection Error', severity: 'error' });
