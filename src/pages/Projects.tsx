@@ -1,13 +1,15 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
     Box, Chip, alpha, Dialog, DialogContent, IconButton,
     Typography, Stack, CircularProgress, Snackbar, Alert, Button,
-    Link
+    Link, DialogTitle, DialogActions
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import LaunchIcon from '@mui/icons-material/Launch';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
+import FilterListOffIcon from '@mui/icons-material/FilterListOff';
 import axios from 'axios';
 
 // Components
@@ -23,8 +25,8 @@ const SANS_STACK = 'ui-sans-serif, system-ui, sans-serif';
 export const ProjectsPage = () => {
     const [searchParams, setSearchParams] = useSearchParams();
     const [projects, setProjects] = useState<any[]>([]);
-    const [customers, setCustomers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isDeleting, setIsDeleting] = useState(false);
     
     const [modalOpen, setModalOpen] = useState(false);
     const [viewOpen, setViewOpen] = useState(false);
@@ -36,17 +38,18 @@ export const ProjectsPage = () => {
         open: false, message: '', severity: 'success'
     });
 
+    const [deleteConfirm, setDeleteConfirm] = useState<{ open: boolean; data: any | null }>({
+        open: false, data: null
+    });
+
     const statusFilter = searchParams.get('status');
 
     const fetchData = useCallback(async () => {
         setLoading(true);
         try {
-            const [projRes, custRes] = await Promise.all([
-                axios.get(`${API_BASE_URL}/projects`),
-                axios.get(`${API_BASE_URL}/customers`)
-            ]);
-            setProjects(projRes.data);
-            setCustomers(custRes.data);
+            const res = await axios.get(`${API_BASE_URL}/projects`);
+            // Safety guard: ensure it is always an array
+            setProjects(Array.isArray(res.data) ? res.data : []);
         } catch (error) {
             setSnackbar({ open: true, message: 'Failed to fetch dashboard data', severity: 'error' });
         } finally {
@@ -60,6 +63,24 @@ export const ProjectsPage = () => {
         if (!statusFilter) return projects;
         return projects.filter(p => p.status?.toLowerCase() === statusFilter.toLowerCase());
     }, [projects, statusFilter]);
+
+    // --- DELETE LOGIC ---
+    const handleActualDelete = async () => {
+        if (!deleteConfirm.data) return;
+        const { id, project_name } = deleteConfirm.data;
+        setIsDeleting(true);
+        try {
+            await axios.delete(`${API_BASE_URL}/projects/${id}`);
+            setDeleteConfirm({ open: false, data: null });
+            setSnackbar({ open: true, message: `Successfully removed "${project_name}"`, severity: 'success' });
+            fetchData();
+        } catch (error) {
+            setSnackbar({ open: true, message: 'Failed to delete project. Check server constraints.', severity: 'error' });
+            setDeleteConfirm({ open: false, data: null });
+        } finally {
+            setIsDeleting(false);
+        }
+    };
 
     const formatHumanDate = (dateString: string) => {
         if (!dateString) return '-';
@@ -105,6 +126,7 @@ export const ProjectsPage = () => {
                     uat: { color: '#f59e0b', bg: alpha('#f59e0b', 0.1) },
                     deployment: { color: '#2ecc71', bg: alpha('#2ecc71', 0.1) },
                     completed: { color: '#10b981', bg: alpha('#10b981', 0.1) },
+                    retired: { color: '#b52841', bg: alpha('#b52841', 0.1) },
                 };
                 const config = stageConfig[row.status?.toLowerCase()] || { color: '#8a92a6', bg: '#f1f1f1' };
                 return (
@@ -142,7 +164,14 @@ export const ProjectsPage = () => {
                     <Typography variant="body2" sx={{ fontWeight: 600, fontFamily: SANS_STACK }}>
                         Filtering Stage: <span style={{ color: PRIMARY_RUST }}>{statusFilter.toUpperCase()}</span>
                     </Typography>
-                    <Button size="small" variant="text" onClick={() => setSearchParams({})} sx={{ color: PRIMARY_RUST, textTransform: 'none', fontWeight: 700 }}>Clear Filter</Button>
+                    <Button 
+                        size="small" 
+                        startIcon={<FilterListOffIcon />} 
+                        onClick={() => setSearchParams({})} 
+                        sx={{ color: PRIMARY_RUST, textTransform: 'none', fontWeight: 700 }}
+                    >
+                        Clear Filter
+                    </Button>
                 </Stack>
             )}
 
@@ -158,12 +187,16 @@ export const ProjectsPage = () => {
                         onClick: () => { setEditData(null); setModalOpen(true); }
                     }}
                     onView={(id) => {
-                        const project = projects.find(p => p.id === id);
+                        const project = projects.find(p => String(p.id) === String(id));
                         if (project) { setSelectedProject(project); setViewOpen(true); }
                     }}
                     onEdit={(id) => {
-                        const project = projects.find(p => p.id === id);
+                        const project = projects.find(p => String(p.id) === String(id));
                         if (project) { setEditData(project); setModalOpen(true); }
+                    }}
+                    onDelete={(id) => {
+                        const project = projects.find(p => String(p.id) === String(id));
+                        if (project) setDeleteConfirm({ open: true, data: project });
                     }}
                 />
             )}
@@ -173,6 +206,35 @@ export const ProjectsPage = () => {
                 onClose={() => setViewOpen(false)} 
                 project={selectedProject} 
             />
+
+            {/* --- DELETE CONFIRMATION --- */}
+            <Dialog 
+                open={deleteConfirm.open} 
+                onClose={() => !isDeleting && setDeleteConfirm({ open: false, data: null })} 
+                maxWidth="xs" 
+                fullWidth
+                PaperProps={{ sx: { borderRadius: '15px' } }}
+            >
+                <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1, color: '#b52841', fontWeight: 800, fontFamily: SANS_STACK }}>
+                    <WarningAmberIcon color="error" /> Confirm Deletion
+                </DialogTitle>
+                <DialogContent>
+                    <Typography sx={{ fontSize: '0.9rem', color: '#4b5563' }}>
+                        Are you sure you want to delete project: <strong>{deleteConfirm.data?.project_name}</strong>?
+                    </Typography>
+                </DialogContent>
+                <DialogActions sx={{ p: 2, pt: 0 }}>
+                    <Button disabled={isDeleting} onClick={() => setDeleteConfirm({ open: false, data: null })} variant="outlined" sx={{ color: DARK_NAVY, fontWeight: 700 }}>Cancel</Button>
+                    <Button 
+                        disabled={isDeleting} 
+                        onClick={handleActualDelete} 
+                        variant="contained" 
+                        sx={{ bgcolor: '#b52841', fontWeight: 700, '&:hover': { bgcolor: '#b52841' } }}
+                    >
+                        {isDeleting ? <CircularProgress size={20} color="inherit" /> : 'Delete'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
             <Dialog open={modalOpen} onClose={() => setModalOpen(false)} fullWidth maxWidth="md" PaperProps={{ sx: { borderRadius: '20px' } }}>
                 <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ px: 3, py: 2, borderBottom: '1px solid #f1f5f9' }}>
@@ -184,7 +246,6 @@ export const ProjectsPage = () => {
                 <DialogContent sx={{ py: 3 }}>
                     <AddProjectForm
                         initialData={editData}
-                        // customers={customers} 
                         onSuccess={() => {
                             setModalOpen(false);
                             fetchData();

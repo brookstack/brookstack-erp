@@ -12,6 +12,9 @@ import LocationOnIcon from '@mui/icons-material/LocationOn';
 import PaymentOutlinedIcon from '@mui/icons-material/PaymentOutlined';
 import LaunchIcon from '@mui/icons-material/Launch';
 import CloseIcon from '@mui/icons-material/Close';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import ReceiptIcon from '@mui/icons-material/Receipt';
+import PaidIcon from '@mui/icons-material/Paid';
 
 // Components
 import { AddBillingForm } from '../Billing/AddBilling';
@@ -63,7 +66,6 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
         open: false, message: '', severity: 'success' 
     });
 
-    // --- Helper for Customer Status Colors ---
     const getStatusColor = (status: string) => {
         const s = status?.toLowerCase();
         if (s === 'active') return SUCCESS_GREEN;
@@ -119,7 +121,14 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
         }
     };
 
-    // --- TAB COLUMNS ---
+    // --- REUSABLE COUNTER CHIP ---
+    const CounterBadge = ({ icon, count, label, color }: any) => (
+        <Stack direction="row" spacing={0.5} alignItems="center" sx={{ bgcolor: alpha(color, 0.08), px: 1.2, py: 0.5, borderRadius: '6px', border: `1px solid ${alpha(color, 0.15)}` }}>
+            {React.cloneElement(icon, { sx: { fontSize: '0.9rem', color: color } })}
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: DARK_NAVY }}>{count}</Typography>
+            <Typography sx={{ fontSize: '0.65rem', fontWeight: 600, color: 'text.secondary', textTransform: 'uppercase' }}>{label}</Typography>
+        </Stack>
+    );
 
     const billingColumns = [
         {
@@ -164,11 +173,9 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
         { 
             id: 'status', label: 'STATUS',
             render: (row: any) => {
-                // Check if type is quotation first
                 if (row.type?.toLowerCase() === 'quotation') {
                     return <Chip label="Quotation" size="small" sx={{ bgcolor: alpha('#0ea5e9', 0.1), color: "#0ea5e9", fontSize: '0.6rem', fontWeight: 800, borderRadius: '4px' }} />;
                 }
-
                 const totalPaid = Number(row.total_paid || 0);
                 const grandTotal = Number(row.grand_total);
                 let label = 'Unpaid', color = RUST;
@@ -257,7 +264,7 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
             id: 'status',
             label: 'STAGE',
             render: (row: any) => {
-                const colors: any = { discovery: '#64748b', design: '#7c3aed', development: '#0ea5e9', completed: SUCCESS_GREEN };
+                const colors: any = { discovery: '#64748b', design: '#7c3aed', development: '#0ea5e9', completed: SUCCESS_GREEN, retired: '#b52841' };
                 const color = colors[row.status?.toLowerCase()] || WARNING_ORANGE;
                 return <Chip label={row.status} size="small" sx={{ bgcolor: alpha(color, 0.1), color, fontWeight: 800, fontSize: '0.6rem', borderRadius: '4px', textTransform: 'capitalize' }} />;
             }
@@ -281,35 +288,39 @@ export const ViewCustomer: React.FC<ViewCustomerProps> = ({ customer, onBack }) 
         <Box sx={{ p: { xs: 2, md: 4 }, bgcolor: '#fcfcfc', minHeight: '100vh' }}>
             <Button startIcon={<ArrowBackIcon />} onClick={onBack} sx={{ color: '#666', mb: 3, textTransform: 'none', fontWeight: 600 }}>Back to Clients</Button>
 
-            <Stack spacing={0.5} sx={{ mb: 4 }}>
-                <Typography variant="h4" sx={{ fontWeight: 900, color: DARK_NAVY }}>{customer.companyName}</Typography>
-                <Chip 
-                    label={customer.status || 'Active'} 
-                    size="small" 
-                    sx={{ 
-                        width: 'fit-content', 
-                        fontWeight: 800, 
-                        borderRadius: '6px',
-                        textTransform: 'capitalize',
-                        bgcolor: alpha(getStatusColor(customer.status), 0.1),
-                        color: getStatusColor(customer.status)
-                    }} 
-                />
+            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} justifyContent="space-between" alignItems={{ xs: 'flex-start', md: 'center' }} sx={{ mb: 4 }}>
+                <Stack spacing={1}>
+                    <Typography variant="h4" sx={{ fontWeight: 900, color: DARK_NAVY }}>{customer.companyName}</Typography>
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                        <Chip 
+                            label={customer.status || 'Active'} 
+                            size="small" 
+                            sx={{ 
+                                fontWeight: 800, borderRadius: '6px', textTransform: 'capitalize',
+                                bgcolor: alpha(getStatusColor(customer.status), 0.1), color: getStatusColor(customer.status)
+                            }} 
+                        />
+                        {/* --- COUNTERS IN HEADER --- */}
+                        <CounterBadge icon={<ReceiptIcon />} count={billingRecords.length} label="Invoices" color={RUST} />
+                        <CounterBadge icon={<PaidIcon />} count={paymentRecords.length} label="Payments" color={SUCCESS_GREEN} />
+                        <CounterBadge icon={<AssignmentIcon />} count={projectRecords.length} label="Projects" color={LEAD_BLUE} />
+                    </Stack>
+                </Stack>
             </Stack>
 
             <Tabs value={activeTab} onChange={(_, v: number) => setActiveTab(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider', '& .Mui-selected': { color: RUST } }} TabIndicatorProps={{ sx: { bgcolor: RUST } }}>
                 <Tab label="Overview" sx={{ textTransform: 'none', fontWeight: 700 }} />
-                <Tab label="Invoices" sx={{ textTransform: 'none', fontWeight: 700 }} />
-                <Tab label="Payments" sx={{ textTransform: 'none', fontWeight: 700 }} />
-                <Tab label="Projects" sx={{ textTransform: 'none', fontWeight: 700 }} />
+                <Tab label={`Invoices`} sx={{ textTransform: 'none', fontWeight: 700 }} />
+                <Tab label={`Payments`} sx={{ textTransform: 'none', fontWeight: 700 }} />
+                <Tab label={`Projects`} sx={{ textTransform: 'none', fontWeight: 700 }} />
             </Tabs>
 
             {loading ? <Stack alignItems="center" py={10}><CircularProgress size={30} sx={{ color: RUST }} /></Stack> : (
                 <Box>
                     {activeTab === 0 && (
-                        <Grid container spacing={3}>
-                            <Grid size={{ xs: 12, md: 4 }}><InfoCard title="Identity" icon={<ContactPageIcon sx={{ color: RUST }} />}><DetailItem label="Contact" value={customer.contactPerson} /><DetailItem label="Business Type" value={customer.clientType} /></InfoCard></Grid>
-                            <Grid size={{ xs: 12, md: 4 }}><InfoCard title="Communication" icon={<SupportAgentIcon sx={{ color: RUST }} />}><DetailItem label="Email" value={customer.email} highlight /><DetailItem label="Mobile" value={customer.mobile} /></InfoCard></Grid>
+                        <Grid container spacing={2}>
+                            <Grid size={{ xs: 12, md: 4 }}><InfoCard title="Client Details" icon={<ContactPageIcon sx={{ color: RUST }} />}><DetailItem label="Company" value={customer.companyName} /><DetailItem label="Business Type" value={customer.clientType} /></InfoCard></Grid>
+                            <Grid size={{ xs: 12, md: 4 }}><InfoCard title="Communication" icon={<SupportAgentIcon sx={{ color: RUST }} />}><DetailItem label="Contact Person" value={customer.contactPerson} /><DetailItem label="Email" value={customer.email} highlight /><DetailItem label="Mobile" value={customer.mobile} /></InfoCard></Grid>
                             <Grid size={{ xs: 12, md: 4 }}><InfoCard title="Location" icon={<LocationOnIcon sx={{ color: RUST }} />}><DetailItem label="City" value={customer.city} /><DetailItem label="Building" value={customer.building} /></InfoCard></Grid>
                         </Grid>
                     )}

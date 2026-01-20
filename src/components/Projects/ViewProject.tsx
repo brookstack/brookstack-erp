@@ -29,7 +29,8 @@ export const ViewProject: React.FC<ViewProjectProps> = ({ open, onClose, project
             discovery: { color: '#64748b', label: 'Discovery & Planning' },
             development: { color: '#0ea5e9', label: 'Active Development' },
             uat: { color: '#f59e0b', label: 'User Testing (UAT)' },
-            completed: { color: '#10b981', label: 'Project Completed' }
+            completed: { color: '#10b981', label: 'Project Completed' },
+            retired: { color: '#10b981', label: 'Project Retired' }
         };
         return stages[status?.toLowerCase()] || { color: RUST, label: status };
     };
