@@ -281,7 +281,7 @@ const StatCard = ({ label, value, icon, color, active, onClick }: any) => (
         <Paper 
             variant="outlined" onClick={onClick}
             sx={{ 
-                p: 1.5, borderRadius: '10px', borderLeft: `3px solid ${color}`,
+                p: 2, borderRadius: '10px', borderLeft: `3px solid ${color}`,
                 bgcolor: active ? alpha(color, 0.08) : alpha(color, 0.02),
                 cursor: 'pointer', transition: '0.2s',
                 '&:hover': { bgcolor: alpha(color, 0.1), transform: 'translateY(-3px)' }
@@ -292,7 +292,7 @@ const StatCard = ({ label, value, icon, color, active, onClick }: any) => (
                     {icon}
                 </Box>
                 <Box>
-                    <Typography sx={{ fontWeight: 800, color: DARK_NAVY, fontSize: '1rem', lineHeight: 1.1 }}>{value}</Typography>
+                    <Typography sx={{ fontWeight: 800, color: DARK_NAVY, fontSize: '1.1rem', lineHeight: 1.1 }}>{value}</Typography>
                     <Typography variant="caption" sx={{ color: 'text.secondary', fontSize: '0.6rem', textTransform: 'uppercase', fontWeight: 800 }}>{label}</Typography>
                 </Box>
             </Stack>
