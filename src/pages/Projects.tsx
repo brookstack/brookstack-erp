@@ -262,11 +262,11 @@ export const ProjectsPage = () => {
 };
 
 const StatCard = ({ label, value, icon, color, active, onClick }: any) => (
-    <Grid size={{xs: 12, sm:6, md:2.4}}>
+    <Grid size={{xs: 12, sm:6}}>
         <Paper 
             variant="outlined" onClick={onClick}
             sx={{ 
-                p: 2, borderRadius: '12px', borderLeft: `4px solid ${color}`,
+                p: 2, borderRadius: '12px', borderLeft: `3px solid ${color}`,
                 bgcolor: active ? alpha(color, 0.08) : alpha(color, 0.02),
                 cursor: 'pointer', transition: '0.2s cubic-bezier(0.4, 0, 0.2, 1)',
                 '&:hover': { bgcolor: alpha(color, 0.1), transform: 'translateY(-3px)' }
