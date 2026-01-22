@@ -248,15 +248,15 @@ export const ViewInvoice: React.FC<InvoiceProps> = ({ data, onBack }) => {
                         <Grid container spacing={2}>
                             <Grid size={{ xs: 6 }}>
                                 <Box sx={{ p: 1.5, height: '100%', borderRadius: '8px', borderLeft: `4px solid ${PRIMARY_RUST}`, bgcolor: alpha(PRIMARY_RUST, 0.02) }}>
-                                   <Typography sx={{ fontWeight: 900, fontSize: '0.6rem', color: PRIMARY_RUST }}>BANK (KCB)</Typography>
+                                   <Typography sx={{ fontWeight: 900, fontSize: '0.6rem', color: PRIMARY_RUST }}>KCB BANK - GARDEN CITY BRANCH</Typography>
                                     <Typography sx={{ fontWeight: 500, fontSize: '0.75rem' }}>Acc No: 1348499796</Typography>
-                                    <Typography sx={{ fontWeight: 500, fontSize: '0.75rem' }}>Brookstack Technologies Limited</Typography>
+                                    <Typography sx={{ fontWeight: 500, fontSize: '0.75rem' }}>Acc Name: Brookstack Technologies Limited</Typography>
                                 </Box>
                             </Grid>
                             <Grid size={{ xs: 6 }}>
                                 <Box sx={{ p: 1.5, height: '100%', borderRadius: '8px', borderLeft: '4px solid #2e7d32', bgcolor: alpha('#2e7d32', 0.02) }}>
                                    <Typography sx={{ fontWeight: 900, fontSize: '0.6rem', color: '#2e7d32' }}>LIPA NA M-PESA</Typography>
-                                    <Typography sx={{ fontWeight: 500, fontSize: '0.75rem' }}>Paybill: 522522</Typography>
+                                    <Typography sx={{ fontWeight: 500, fontSize: '0.75rem' }}>Paybill No: 522522</Typography>
                                     <Typography sx={{ fontWeight: 500, fontSize: '0.75rem' }}>Acc No: 1348499796</Typography>
                                 </Box>
                             </Grid>
