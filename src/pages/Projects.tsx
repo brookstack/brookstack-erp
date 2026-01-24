@@ -262,7 +262,7 @@ export const ProjectsPage = () => {
 };
 
 const StatCard = ({ label, value, icon, color, active, onClick }: any) => (
-    <Grid size={{xs: 12, sm:6}}>
+    <Grid size={{xs: 12, sm:6, md: 3}}>
         <Paper 
             variant="outlined" onClick={onClick}
             sx={{ 
